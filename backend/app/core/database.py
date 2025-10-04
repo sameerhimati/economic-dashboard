@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.pool import NullPool, QueuePool
+from sqlalchemy.pool import NullPool, AsyncAdaptedQueuePool
 from redis.asyncio import Redis, ConnectionPool
 from redis.exceptions import RedisError
 
@@ -85,7 +85,7 @@ async def init_db(max_retries: int = 5) -> None:
             logger.info(f"Initializing database connection (attempt {attempt + 1}/{max_retries})...")
 
             # Determine pooling strategy based on environment
-            poolclass = QueuePool if settings.is_production else NullPool
+            poolclass = AsyncAdaptedQueuePool if settings.is_production else NullPool
 
             # Create engine kwargs
             engine_kwargs = {
@@ -93,8 +93,8 @@ async def init_db(max_retries: int = 5) -> None:
                 "poolclass": poolclass,
             }
 
-            # Only add pool settings if using QueuePool
-            if poolclass == QueuePool:
+            # Only add pool settings if using AsyncAdaptedQueuePool
+            if poolclass == AsyncAdaptedQueuePool:
                 engine_kwargs.update({
                     "pool_size": settings.DB_POOL_SIZE,
                     "max_overflow": settings.DB_MAX_OVERFLOW,
