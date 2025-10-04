@@ -35,7 +35,10 @@ def get_password_hash(password: str) -> str:
         ```
     """
     try:
-        return pwd_context.hash(password)
+        # Bcrypt has a 72-byte limit, truncate if necessary
+        # This is safe because we validate password strength separately
+        password_bytes = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
+        return pwd_context.hash(password_bytes)
     except Exception as e:
         logger.error(f"Error hashing password: {str(e)}", exc_info=True)
         raise
@@ -58,7 +61,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         ```
     """
     try:
-        return pwd_context.verify(plain_password, hashed_password)
+        # Bcrypt has a 72-byte limit, truncate if necessary (same as hashing)
+        password_bytes = plain_password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
+        return pwd_context.verify(password_bytes, hashed_password)
     except Exception as e:
         logger.error(f"Error verifying password: {str(e)}", exc_info=True)
         # Return False on error to prevent authentication bypass
