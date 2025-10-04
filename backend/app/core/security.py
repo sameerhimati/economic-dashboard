@@ -7,16 +7,13 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 
+import bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from app.core.config import settings
 
 # Configure logging
 logger = logging.getLogger(__name__)
-
-# Password hashing context using bcrypt
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def get_password_hash(password: str) -> str:
@@ -35,10 +32,13 @@ def get_password_hash(password: str) -> str:
         ```
     """
     try:
-        # Bcrypt has a 72-byte limit, truncate if necessary
-        # This is safe because we validate password strength separately
-        password_bytes = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
-        return pwd_context.hash(password_bytes)
+        # Bcrypt has a 72-byte limit, truncate password
+        password_bytes = password.encode('utf-8')[:72]
+        # Generate salt and hash password
+        salt = bcrypt.gensalt()
+        hashed = bcrypt.hashpw(password_bytes, salt)
+        # Return as string (decode from bytes)
+        return hashed.decode('utf-8')
     except Exception as e:
         logger.error(f"Error hashing password: {str(e)}", exc_info=True)
         raise
@@ -61,9 +61,11 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         ```
     """
     try:
-        # Bcrypt has a 72-byte limit, truncate if necessary (same as hashing)
-        password_bytes = plain_password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
-        return pwd_context.verify(password_bytes, hashed_password)
+        # Bcrypt has a 72-byte limit, truncate password (same as hashing)
+        password_bytes = plain_password.encode('utf-8')[:72]
+        hashed_bytes = hashed_password.encode('utf-8')
+        # Verify password
+        return bcrypt.checkpw(password_bytes, hashed_bytes)
     except Exception as e:
         logger.error(f"Error verifying password: {str(e)}", exc_info=True)
         # Return False on error to prevent authentication bypass
