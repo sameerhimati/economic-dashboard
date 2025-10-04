@@ -47,23 +47,23 @@ export function Register() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="h-10 w-10 text-primary" />
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
+          <div className="flex items-center gap-2.5 mb-3">
+            <TrendingUp className="h-8 w-8 text-primary" />
+            <h1 className="text-2xl font-bold tracking-tight">
               Economic Dashboard
             </h1>
           </div>
-          <p className="text-muted-foreground text-center">
+          <p className="text-sm text-muted-foreground text-center">
             Start your journey to better economic insights
           </p>
         </div>
 
-        <Card className="border-primary/20 shadow-xl">
+        <Card className="border shadow-lg">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl">Create an account</CardTitle>
+            <CardTitle className="text-2xl font-semibold">Create an account</CardTitle>
             <CardDescription>
               Enter your details to get started
             </CardDescription>

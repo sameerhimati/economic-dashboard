@@ -17,10 +17,10 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-2">
-          <TrendingUp className="h-6 w-6 text-primary" />
-          <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+      <div className="container flex h-14 items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <TrendingUp className="h-5 w-5 text-primary" />
+          <h1 className="text-lg font-semibold tracking-tight">
             Economic Dashboard
           </h1>
         </div>
@@ -29,17 +29,17 @@ export function Header() {
           {user && (
             <>
               <div className="flex items-center gap-3">
-                <Avatar>
-                  <AvatarFallback className="bg-primary text-primary-foreground">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
                     {getInitials(user.username)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="hidden sm:block">
-                  <p className="text-sm font-medium">{user.username}</p>
-                  <p className="text-xs text-muted-foreground">{user.email}</p>
+                  <p className="text-sm font-medium leading-none">{user.username}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{user.email}</p>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" onClick={logout}>
+              <Button variant="ghost" size="icon" onClick={logout} className="h-8 w-8">
                 <LogOut className="h-4 w-4" />
               </Button>
             </>

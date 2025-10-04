@@ -1,26 +1,80 @@
 @import "tailwindcss";
 
+/* Clean, information-focused theme - Dark Mode by default */
 :root {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 263.4 70% 50.4%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 263.4 70% 50.4%;
-  --radius: 0.5rem;
+  /* Deep blacks and grays for dark mode */
+  --background: 0 0% 5%;          /* zinc-950 equivalent */
+  --foreground: 0 0% 98%;          /* zinc-50 equivalent */
+
+  /* Cards with subtle elevation */
+  --card: 0 0% 8%;                 /* Slightly lighter than background */
+  --card-foreground: 0 0% 98%;
+
+  /* Popovers */
+  --popover: 0 0% 8%;
+  --popover-foreground: 0 0% 98%;
+
+  /* Primary - Subtle blue for links and important actions */
+  --primary: 217 91% 60%;          /* blue-500 */
+  --primary-foreground: 0 0% 98%;
+
+  /* Secondary - Muted gray */
+  --secondary: 0 0% 15%;           /* zinc-800 equivalent */
+  --secondary-foreground: 0 0% 98%;
+
+  /* Muted elements */
+  --muted: 0 0% 15%;               /* zinc-800 */
+  --muted-foreground: 0 0% 60%;    /* zinc-400 */
+
+  /* Accent for hover states */
+  --accent: 0 0% 12%;
+  --accent-foreground: 0 0% 98%;
+
+  /* Destructive - Red for errors/negative */
+  --destructive: 0 84% 60%;        /* red-500 */
+  --destructive-foreground: 0 0% 98%;
+
+  /* Borders - Subtle */
+  --border: 0 0% 18%;              /* zinc-800 */
+  --input: 0 0% 18%;
+
+  /* Ring for focus states */
+  --ring: 217 91% 60%;             /* blue-500 */
+
+  /* Border radius */
+  --radius: 0.375rem;              /* Slightly smaller for cleaner look */
+}
+
+/* Light mode - Clean whites */
+.light {
+  --background: 0 0% 100%;         /* white */
+  --foreground: 0 0% 10%;          /* zinc-900 equivalent */
+
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 10%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 10%;
+
+  --primary: 217 91% 60%;          /* blue-500 */
+  --primary-foreground: 0 0% 98%;
+
+  --secondary: 0 0% 96%;           /* zinc-100 */
+  --secondary-foreground: 0 0% 10%;
+
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 45%;
+
+  --accent: 0 0% 96%;
+  --accent-foreground: 0 0% 10%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+
+  --border: 0 0% 90%;              /* zinc-200 */
+  --input: 0 0% 90%;
+
+  --ring: 217 91% 60%;
 }
 
 * {
@@ -30,5 +84,25 @@
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-feature-settings: "rlig" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography hierarchy */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+/* Smooth transitions for all interactive elements */
+button, a, [role="button"] {
+  transition: all 0.15s ease-in-out;
+}
+
+/* Numbers in monospace for better data presentation */
+.metric-value, .data-number {
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, Monaco, monospace;
+  font-variant-numeric: tabular-nums;
 }
