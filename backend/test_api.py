@@ -504,7 +504,6 @@ class TestCaching:
         if "data" in data_1 and "data" in data_2:
             assert len(data_1["data"]) == len(data_2["data"]), "Cached data should have same length"
 
-    @pytest.mark.skip(reason="Cache invalidation method not yet implemented in FREDService")
     async def test_cache_invalidation(self, client: httpx.AsyncClient, auth_headers: Dict[str, str]):
         """Test cache invalidation for a series."""
         # First, fetch some data to ensure it's cached

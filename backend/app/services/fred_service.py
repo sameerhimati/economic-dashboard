@@ -759,6 +759,38 @@ class FREDService:
 
         return stored_count
 
+    async def invalidate_cache(self, series_id: Optional[str] = None) -> int:
+        """
+        Invalidate cached data for a specific series or all FRED data.
+
+        Args:
+            series_id: Series to invalidate (e.g., 'DFF'). If None, invalidates all FRED cache.
+
+        Returns:
+            int: Number of cache keys deleted
+
+        Example:
+            ```python
+            # Invalidate cache for specific series
+            deleted = await fred_service.invalidate_cache("DFF")
+
+            # Invalidate all FRED cache
+            deleted = await fred_service.invalidate_cache()
+            ```
+        """
+        if series_id:
+            # Invalidate all cache keys for this series (current + historical with any date range)
+            pattern = f"fred:*:{series_id.upper()}*"
+            logger.info(f"Invalidating cache for series: {series_id}")
+        else:
+            # Invalidate all FRED cache
+            pattern = "fred:*"
+            logger.info("Invalidating all FRED cache")
+
+        deleted_count = await self._invalidate_cache_pattern(pattern)
+
+        return deleted_count
+
 
 async def get_fred_service() -> FREDService:
     """
