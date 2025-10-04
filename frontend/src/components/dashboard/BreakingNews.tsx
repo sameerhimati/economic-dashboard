@@ -44,46 +44,46 @@ export function BreakingNews({ data, isLoading }: BreakingNewsProps) {
           Breaking News
         </h2>
         <p className="text-muted-foreground">
-          Last updated: {formatDateTime(data.lastUpdated)}
+          Last updated: {data?.lastUpdated ? formatDateTime(data.lastUpdated) : 'Unknown'}
         </p>
       </div>
 
       <div className="grid gap-4">
-        {data.items.map((item) => (
+        {data.items.map((item, index) => (
           <Card
-            key={item.id}
+            key={item?.id || `breaking-news-${index}`}
             className={cn(
               'transition-all hover:shadow-lg cursor-pointer',
-              item.importance === 'high' && 'border-red-500/50 bg-red-500/5'
+              item?.importance === 'high' && 'border-red-500/50 bg-red-500/5'
             )}
-            onClick={() => item.url && window.open(item.url, '_blank')}
+            onClick={() => item?.url && window.open(item.url, '_blank')}
           >
             <CardContent className="pt-6">
               <div className="space-y-3">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      {item.importance === 'high' && (
+                      {item?.importance === 'high' && (
                         <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-red-500/20 text-red-500 rounded">
                           <AlertCircle className="h-3 w-3" />
                           High Priority
                         </span>
                       )}
-                      {item.category && (
+                      {item?.category && (
                         <span className="px-2 py-1 text-xs font-medium bg-primary/10 text-primary rounded">
                           {item.category}
                         </span>
                       )}
                     </div>
                     <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                      {item.title}
-                      {item.url && <ExternalLink className="h-4 w-4 text-muted-foreground" />}
+                      {item?.title || 'Breaking News'}
+                      {item?.url && <ExternalLink className="h-4 w-4 text-muted-foreground" />}
                     </h3>
-                    <p className="text-sm text-muted-foreground mb-3">{item.summary}</p>
+                    <p className="text-sm text-muted-foreground mb-3">{item?.summary || 'No details available'}</p>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="font-medium">{item.source}</span>
+                      <span className="font-medium">{item?.source || 'Unknown'}</span>
                       <span>•</span>
-                      <span>{formatDateTime(item.publishedAt)}</span>
+                      <span>{item?.publishedAt ? formatDateTime(item.publishedAt) : 'Unknown time'}</span>
                     </div>
                   </div>
                 </div>

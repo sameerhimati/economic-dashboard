@@ -1,6 +1,6 @@
 export interface User {
   id: string
-  username: string
+  username?: string
   email: string
 }
 
@@ -21,12 +21,12 @@ export interface RegisterCredentials {
 }
 
 export interface EconomicIndicator {
-  id: string
-  name: string
-  value: number
-  change: number
-  changePercent: number
-  lastUpdated: string
+  id?: string
+  name?: string
+  value?: number
+  change?: number
+  changePercent?: number
+  lastUpdated?: string
   source?: string
   description?: string
   historicalData?: HistoricalDataPoint[]
@@ -38,11 +38,11 @@ export interface HistoricalDataPoint {
 }
 
 export interface NewsItem {
-  id: string
-  title: string
-  summary: string
-  source: string
-  publishedAt: string
+  id?: string
+  title?: string
+  summary?: string
+  source?: string
+  publishedAt?: string
   url?: string
   importance?: 'high' | 'medium' | 'low'
   category?: string
@@ -51,27 +51,27 @@ export interface NewsItem {
 export interface DashboardTodayFeed {
   marketStatus: 'open' | 'closed' | 'pre-market' | 'after-hours'
   lastUpdated: string
-  indicators: EconomicIndicator[]
-  news: NewsItem[]
+  indicators?: EconomicIndicator[]
+  news?: NewsItem[]
 }
 
 export interface DashboardMetrics {
   lastUpdated: string
-  metrics: EconomicIndicator[]
+  metrics?: EconomicIndicator[]
 }
 
 export interface BreakingNews {
-  lastUpdated: string
+  lastUpdated?: string
   items: NewsItem[]
 }
 
 export interface WeeklySummary {
-  weekStart: string
-  weekEnd: string
-  summary: string
-  keyEvents: string[]
-  topPerformers: EconomicIndicator[]
-  topDecliners: EconomicIndicator[]
+  weekStart?: string
+  weekEnd?: string
+  summary?: string
+  keyEvents?: string[]
+  topPerformers?: EconomicIndicator[]
+  topDecliners?: EconomicIndicator[]
 }
 
 export interface ApiError {

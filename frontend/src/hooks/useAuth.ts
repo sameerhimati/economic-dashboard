@@ -27,6 +27,10 @@ export const useAuth = create<AuthState>((set, get) => ({
       set({ isLoading: true, error: null })
       const response = await authService.login(credentials)
 
+      if (!response?.access_token) {
+        throw new Error('Invalid login response')
+      }
+
       localStorage.setItem('token', response.access_token)
 
       // Fetch user data
@@ -41,7 +45,7 @@ export const useAuth = create<AuthState>((set, get) => ({
       })
     } catch (error: any) {
       set({
-        error: error.message || 'Login failed',
+        error: error?.message || 'Login failed',
         isLoading: false,
         isAuthenticated: false,
       })
@@ -56,12 +60,12 @@ export const useAuth = create<AuthState>((set, get) => ({
 
       // Auto-login after registration
       await get().login({
-        username: credentials.username,
-        password: credentials.password,
+        username: credentials?.username || '',
+        password: credentials?.password || '',
       })
     } catch (error: any) {
       set({
-        error: error.message || 'Registration failed',
+        error: error?.message || 'Registration failed',
         isLoading: false,
       })
       throw error

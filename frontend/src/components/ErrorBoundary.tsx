@@ -1,0 +1,99 @@
+import { Component, type ReactNode } from 'react'
+import { AlertCircle, RefreshCw } from 'lucide-react'
+import { Button } from './ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
+
+interface Props {
+  children: ReactNode
+}
+
+interface State {
+  hasError: boolean
+  error?: Error
+  errorInfo?: React.ErrorInfo
+}
+
+export class ErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('ErrorBoundary caught an error:', error, errorInfo)
+    this.setState({
+      error,
+      errorInfo,
+    })
+  }
+
+  handleReset = () => {
+    this.setState({ hasError: false, error: undefined, errorInfo: undefined })
+    window.location.href = '/'
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background p-4">
+          <Card className="w-full max-w-2xl border-destructive/50 bg-destructive/5">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <AlertCircle className="h-8 w-8 text-destructive" />
+                <div>
+                  <CardTitle className="text-2xl">Something went wrong</CardTitle>
+                  <CardDescription className="mt-1">
+                    The application encountered an unexpected error
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {this.state.error && (
+                <div className="bg-background p-4 rounded-lg border">
+                  <p className="font-mono text-sm text-destructive">
+                    {this.state.error.toString()}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <Button onClick={this.handleReset} className="gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  Return to Dashboard
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => window.location.reload()}
+                  className="gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Reload Page
+                </Button>
+              </div>
+
+              {import.meta.env.DEV && this.state.errorInfo && (
+                <details className="mt-4">
+                  <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
+                    Error Details (Development Only)
+                  </summary>
+                  <div className="mt-2 bg-background p-4 rounded-lg border overflow-auto max-h-96">
+                    <pre className="font-mono text-xs text-muted-foreground whitespace-pre-wrap">
+                      {this.state.errorInfo.componentStack}
+                    </pre>
+                  </div>
+                </details>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}

@@ -150,13 +150,14 @@ export function TodayFeed({ data, isLoading, error, onRefresh }: TodayFeedProps)
   }
 
   // Check for breaking news (high importance items from last hour)
-  const breakingNews = data.news?.find(item =>
-    item.importance === 'high' &&
+  const breakingNews = data?.news?.find(item =>
+    item?.importance === 'high' &&
+    item?.publishedAt &&
     new Date(item.publishedAt).getTime() > Date.now() - 3600000
   )
 
   // Extract weekly insights from news
-  const weeklyInsights = data.news?.slice(0, 3).map(item => item.title) || []
+  const weeklyInsights = data?.news?.slice(0, 3).map(item => item?.title || 'Untitled').filter(Boolean) || []
 
   return (
     <div className="space-y-6 animate-fade-in" id="overview">
@@ -218,11 +219,11 @@ export function TodayFeed({ data, isLoading, error, onRefresh }: TodayFeedProps)
                     Breaking News
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {new Date(breakingNews.publishedAt).toLocaleTimeString()}
+                    {breakingNews?.publishedAt ? new Date(breakingNews.publishedAt).toLocaleTimeString() : 'Unknown time'}
                   </span>
                 </div>
-                <h3 className="font-semibold text-sm mb-1">{breakingNews.title}</h3>
-                <p className="text-xs text-muted-foreground">{breakingNews.summary}</p>
+                <h3 className="font-semibold text-sm mb-1">{breakingNews?.title || 'Breaking News'}</h3>
+                <p className="text-xs text-muted-foreground">{breakingNews?.summary || 'No details available'}</p>
               </div>
             </div>
           </CardContent>
@@ -230,23 +231,25 @@ export function TodayFeed({ data, isLoading, error, onRefresh }: TodayFeedProps)
       )}
 
       {/* Key Metrics Grid */}
-      <div>
-        <div className="mb-4">
-          <h2 className="text-2xl font-bold tracking-tight">Key Metrics</h2>
-          <p className="text-sm text-muted-foreground">Live economic indicators</p>
+      {data?.indicators && data.indicators.length > 0 && (
+        <div>
+          <div className="mb-4">
+            <h2 className="text-2xl font-bold tracking-tight">Key Metrics</h2>
+            <p className="text-sm text-muted-foreground">Live economic indicators</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {data.indicators.slice(0, 6).map((indicator, index) => (
+              <div
+                key={indicator?.id || `indicator-${index}`}
+                className="animate-slide-up"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <MetricCard metric={indicator} />
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {data.indicators.slice(0, 6).map((indicator, index) => (
-            <div
-              key={indicator.id}
-              className="animate-slide-up"
-              style={{ animationDelay: `${index * 50}ms` }}
-            >
-              <MetricCard metric={indicator} />
-            </div>
-          ))}
-        </div>
-      </div>
+      )}
 
       {/* Weekly Summary Section */}
       {weeklyInsights.length > 0 && (
@@ -272,7 +275,7 @@ export function TodayFeed({ data, isLoading, error, onRefresh }: TodayFeedProps)
       )}
 
       {/* Latest News */}
-      {data.news && data.news.length > 0 && (
+      {data?.news && data.news.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Latest News</CardTitle>
@@ -280,29 +283,29 @@ export function TodayFeed({ data, isLoading, error, onRefresh }: TodayFeedProps)
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {data.news.slice(0, 5).map((item) => (
+              {data.news.slice(0, 5).map((item, index) => (
                 <div
-                  key={item.id}
+                  key={item?.id || `news-${index}`}
                   className="group flex gap-4 p-3 rounded-lg border border-transparent hover:border-border hover:bg-accent/50 transition-all cursor-pointer"
-                  onClick={() => item.url && window.open(item.url, '_blank')}
+                  onClick={() => item?.url && window.open(item.url, '_blank')}
                 >
                   <div className="flex-1 space-y-1.5">
                     <div className="flex items-center gap-2">
                       <h4 className="font-medium text-sm group-hover:text-primary transition-colors">
-                        {item.title}
+                        {item?.title || 'Untitled'}
                       </h4>
-                      {item.url && (
+                      {item?.url && (
                         <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-2">
-                      {item.summary}
+                      {item?.summary || 'No summary available'}
                     </p>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span className="font-medium">{item.source}</span>
+                      <span className="font-medium">{item?.source || 'Unknown'}</span>
                       <span>•</span>
-                      <span>{new Date(item.publishedAt).toLocaleTimeString()}</span>
-                      {item.importance && (
+                      <span>{item?.publishedAt ? new Date(item.publishedAt).toLocaleTimeString() : 'Unknown time'}</span>
+                      {item?.importance && (
                         <>
                           <span>•</span>
                           <span className={cn(

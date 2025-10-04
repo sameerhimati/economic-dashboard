@@ -10,8 +10,12 @@ interface MetricCardProps {
 }
 
 export function MetricCard({ metric }: MetricCardProps) {
-  const isPositive = metric.change > 0
-  const isNeutral = metric.change === 0
+  if (!metric) {
+    return null
+  }
+
+  const isPositive = (metric?.change ?? 0) > 0
+  const isNeutral = (metric?.change ?? 0) === 0
   const color = isPositive ? '#10b981' : isNeutral ? '#6b7280' : '#ef4444'
 
   return (
@@ -28,7 +32,7 @@ export function MetricCard({ metric }: MetricCardProps) {
 
       <CardHeader className="pb-2 pl-5">
         <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          {metric.name}
+          {metric?.name || 'Unknown Metric'}
         </CardTitle>
       </CardHeader>
 
@@ -36,7 +40,7 @@ export function MetricCard({ metric }: MetricCardProps) {
         <div className="flex items-end justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="text-3xl font-bold tracking-tight metric-value mb-1">
-              {formatNumber(metric.value)}
+              {formatNumber(metric?.value ?? 0)}
             </div>
             <div
               className={cn(
@@ -53,29 +57,29 @@ export function MetricCard({ metric }: MetricCardProps) {
               ) : (
                 <TrendingDown className="h-3.5 w-3.5" />
               )}
-              <span className="metric-value">{formatPercent(metric.changePercent)}</span>
+              <span className="metric-value">{formatPercent(metric?.changePercent ?? 0)}</span>
             </div>
           </div>
 
-          {metric.historicalData && metric.historicalData.length > 0 && (
+          {metric?.historicalData && metric.historicalData.length > 0 && (
             <div className="w-20 h-12 flex-shrink-0">
               <SparkLine data={metric.historicalData} color={color} />
             </div>
           )}
         </div>
 
-        {metric.description && (
+        {metric?.description && (
           <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
             {metric.description}
           </p>
         )}
 
-        {metric.lastUpdated && (
+        {metric?.lastUpdated && (
           <div className="flex items-center justify-between text-xs">
             <span className="text-muted-foreground/70">
               Updated {new Date(metric.lastUpdated).toLocaleTimeString()}
             </span>
-            {metric.source && (
+            {metric?.source && (
               <span className="text-muted-foreground/50 text-[10px] uppercase tracking-wider">
                 {metric.source}
               </span>

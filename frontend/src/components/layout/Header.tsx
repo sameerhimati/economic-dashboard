@@ -8,12 +8,13 @@ export function Header() {
 
   const getInitials = (name?: string) => {
     if (!name) return '??'
-    return name
-      .split(' ')
-      .map((n) => n[0])
+    const parts = name.split(' ').filter(part => part.length > 0)
+    if (parts.length === 0) return '??'
+    return parts
+      .map((n) => n[0] || '')
       .join('')
       .toUpperCase()
-      .slice(0, 2)
+      .slice(0, 2) || '??'
   }
 
   return (
@@ -32,12 +33,12 @@ export function Header() {
               <div className="flex items-center gap-3">
                 <Avatar className="h-8 w-8">
                   <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
-                    {getInitials(user.username)}
+                    {getInitials(user?.username)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="hidden sm:block">
-                  <p className="text-sm font-medium leading-none">{user.username}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{user.email}</p>
+                  <p className="text-sm font-medium leading-none">{user?.username || 'User'}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{user?.email || ''}</p>
                 </div>
               </div>
               <Button variant="ghost" size="icon" onClick={logout} className="h-8 w-8">

@@ -44,7 +44,7 @@ export function WeeklySummary({ data, isLoading }: WeeklySummaryProps) {
           Weekly Summary
         </h2>
         <p className="text-muted-foreground">
-          {formatDate(data.weekStart)} - {formatDate(data.weekEnd)}
+          {data?.weekStart ? formatDate(data.weekStart) : 'Unknown'} - {data?.weekEnd ? formatDate(data.weekEnd) : 'Unknown'}
         </p>
       </div>
 
@@ -53,11 +53,11 @@ export function WeeklySummary({ data, isLoading }: WeeklySummaryProps) {
           <CardTitle>Week Overview</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground leading-relaxed">{data.summary}</p>
+          <p className="text-muted-foreground leading-relaxed">{data?.summary || 'No summary available'}</p>
         </CardContent>
       </Card>
 
-      {data.keyEvents && data.keyEvents.length > 0 && (
+      {data?.keyEvents && data.keyEvents.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Key Events</CardTitle>
@@ -66,9 +66,9 @@ export function WeeklySummary({ data, isLoading }: WeeklySummaryProps) {
           <CardContent>
             <ul className="space-y-3">
               {data.keyEvents.map((event, index) => (
-                <li key={index} className="flex gap-3">
+                <li key={`event-${index}`} className="flex gap-3">
                   <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <span className="text-sm">{event}</span>
+                  <span className="text-sm">{event || 'Event description unavailable'}</span>
                 </li>
               ))}
             </ul>
@@ -77,7 +77,7 @@ export function WeeklySummary({ data, isLoading }: WeeklySummaryProps) {
       )}
 
       <div className="grid gap-6 md:grid-cols-2">
-        {data.topPerformers && data.topPerformers.length > 0 && (
+        {data?.topPerformers && data.topPerformers.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-green-500">
@@ -87,14 +87,14 @@ export function WeeklySummary({ data, isLoading }: WeeklySummaryProps) {
               <CardDescription>Best performing indicators this week</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {data.topPerformers.map((metric) => (
-                <MetricCard key={metric.id} metric={metric} />
+              {data.topPerformers.map((metric, index) => (
+                <MetricCard key={metric?.id || `top-performer-${index}`} metric={metric} />
               ))}
             </CardContent>
           </Card>
         )}
 
-        {data.topDecliners && data.topDecliners.length > 0 && (
+        {data?.topDecliners && data.topDecliners.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-red-500">
@@ -104,8 +104,8 @@ export function WeeklySummary({ data, isLoading }: WeeklySummaryProps) {
               <CardDescription>Weakest performing indicators this week</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {data.topDecliners.map((metric) => (
-                <MetricCard key={metric.id} metric={metric} />
+              {data.topDecliners.map((metric, index) => (
+                <MetricCard key={metric?.id || `top-decliner-${index}`} metric={metric} />
               ))}
             </CardContent>
           </Card>
