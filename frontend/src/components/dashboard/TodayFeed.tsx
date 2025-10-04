@@ -188,7 +188,7 @@ export function TodayFeed({ data, isLoading, error, onRefresh }: TodayFeedProps)
                 )}>
                   <Activity className="h-3.5 w-3.5" />
                   <span className="capitalize">
-                    {data.marketStatus.replace('-', ' ')}
+                    {data?.marketStatus?.replace('-', ' ') || 'Unknown'}
                   </span>
                 </div>
                 {onRefresh && (
