@@ -33,7 +33,7 @@ export const useData = create<DataState>((set, get) => ({
   fetchTodayFeed: async () => {
     try {
       set({ isLoading: true, error: null })
-      const response = await apiClient.get<DashboardTodayFeed>('/dashboard/today')
+      const response = await apiClient.get<DashboardTodayFeed>('/data/current')
       set({ todayFeed: response.data, isLoading: false })
     } catch (error: any) {
       set({ error: error.message, isLoading: false })
@@ -43,7 +43,7 @@ export const useData = create<DataState>((set, get) => ({
   fetchMetrics: async () => {
     try {
       set({ isLoading: true, error: null })
-      const response = await apiClient.get<DashboardMetrics>('/dashboard/metrics')
+      const response = await apiClient.get<DashboardMetrics>('/data/current')
       set({ metrics: response.data, isLoading: false })
     } catch (error: any) {
       set({ error: error.message, isLoading: false })
@@ -53,8 +53,8 @@ export const useData = create<DataState>((set, get) => ({
   fetchBreakingNews: async () => {
     try {
       set({ isLoading: true, error: null })
-      const response = await apiClient.get<BreakingNews>('/dashboard/breaking')
-      set({ breakingNews: response.data, isLoading: false })
+      // Placeholder - backend doesn't have breaking news endpoint yet
+      set({ breakingNews: null, isLoading: false })
     } catch (error: any) {
       set({ error: error.message, isLoading: false })
     }
@@ -63,8 +63,8 @@ export const useData = create<DataState>((set, get) => ({
   fetchWeeklySummary: async () => {
     try {
       set({ isLoading: true, error: null })
-      const response = await apiClient.get<WeeklySummary>('/dashboard/weekly')
-      set({ weeklySummary: response.data, isLoading: false })
+      // Placeholder - backend doesn't have weekly summary endpoint yet
+      set({ weeklySummary: null, isLoading: false })
     } catch (error: any) {
       set({ error: error.message, isLoading: false })
     }
