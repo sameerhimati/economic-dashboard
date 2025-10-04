@@ -42,6 +42,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     postgresql-client \
     libpq-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy virtual environment from builder stage
@@ -66,9 +67,9 @@ USER appuser
 # Expose port 8000
 EXPOSE 8000
 
-# Health check
+# Health check using curl (more reliable than Python import in container)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import httpx; httpx.get('http://localhost:8000/health/liveness', timeout=5)" || exit 1
+    CMD curl -f http://localhost:8000/health/liveness || exit 1
 
 # Default command: Run migrations then start server
 # Railway will use the startCommand from railway.json

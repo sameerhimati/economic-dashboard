@@ -130,6 +130,7 @@ class FREDService:
     - Redis caching with configurable TTL
     - PostgreSQL storage with upsert logic
     - Comprehensive error handling and logging
+    - Context manager support for proper resource cleanup
     """
 
     def __init__(self, redis_client: Optional[Redis] = None, db_session: Optional[AsyncSession] = None):
@@ -166,9 +167,19 @@ class FREDService:
             follow_redirects=True,
         )
 
+    async def __aenter__(self):
+        """Context manager entry - returns self."""
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - ensures client is closed."""
+        await self.close()
+        return False  # Don't suppress exceptions
+
     async def close(self):
         """Close the HTTP client."""
-        await self.client.aclose()
+        if hasattr(self, 'client') and self.client is not None:
+            await self.client.aclose()
 
     def _get_cache_key(self, cache_type: str, series_id: Optional[str] = None, **kwargs) -> str:
         """

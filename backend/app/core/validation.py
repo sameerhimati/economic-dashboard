@@ -258,16 +258,19 @@ def validate_all_config() -> bool:
     # Validate environment-specific settings
     if settings.ENVIRONMENT == "production":
         if settings.DEBUG:
-            all_warnings.append(
+            all_errors.append(
                 "ENVIRONMENT: DEBUG is enabled in production. "
-                "This may expose sensitive information."
+                "This is a security risk and must be disabled."
             )
+            all_valid = False
 
-        if "localhost" in settings.CORS_ORIGINS:
-            all_warnings.append(
-                "CORS_ORIGINS: Contains localhost in production. "
-                "This may be unintended."
+        # Strict CORS validation for production
+        if "localhost" in settings.CORS_ORIGINS or "127.0.0.1" in settings.CORS_ORIGINS:
+            all_errors.append(
+                "CORS_ORIGINS: Contains localhost/127.0.0.1 in production environment. "
+                "This is a security risk and must be removed."
             )
+            all_valid = False
 
     # Log results
     if all_errors:

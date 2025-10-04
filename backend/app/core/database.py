@@ -3,6 +3,7 @@ Database connection management for PostgreSQL and Redis.
 
 Provides async SQLAlchemy engine and session management, plus Redis client.
 """
+import asyncio
 import logging
 from typing import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -67,53 +68,84 @@ def get_session_maker() -> async_sessionmaker[AsyncSession]:
     return _async_session_maker
 
 
-async def init_db() -> None:
+async def init_db(max_retries: int = 5) -> None:
     """
-    Initialize the database engine and session maker.
+    Initialize the database engine and session maker with retry logic.
 
     Creates async engine with connection pooling and configures session maker.
     Should be called on application startup.
+
+    Args:
+        max_retries: Maximum number of retry attempts for transient failures
     """
     global _engine, _async_session_maker
 
-    try:
-        logger.info("Initializing database connection...")
+    for attempt in range(max_retries):
+        try:
+            logger.info(f"Initializing database connection (attempt {attempt + 1}/{max_retries})...")
 
-        # Determine pooling strategy based on environment
-        poolclass = QueuePool if settings.is_production else NullPool
+            # Determine pooling strategy based on environment
+            poolclass = QueuePool if settings.is_production else NullPool
 
-        # Create engine kwargs
-        engine_kwargs = {
-            "echo": settings.DB_ECHO,
-            "poolclass": poolclass,
-        }
+            # Create engine kwargs
+            engine_kwargs = {
+                "echo": settings.DB_ECHO,
+                "poolclass": poolclass,
+            }
 
-        # Only add pool settings if using QueuePool
-        if poolclass == QueuePool:
-            engine_kwargs.update({
-                "pool_size": settings.DB_POOL_SIZE,
-                "max_overflow": settings.DB_MAX_OVERFLOW,
-                "pool_pre_ping": True,  # Verify connections before using
-                "pool_recycle": 3600,  # Recycle connections after 1 hour
-            })
+            # Only add pool settings if using QueuePool
+            if poolclass == QueuePool:
+                engine_kwargs.update({
+                    "pool_size": settings.DB_POOL_SIZE,
+                    "max_overflow": settings.DB_MAX_OVERFLOW,
+                    "pool_pre_ping": True,  # Verify connections before using
+                    "pool_recycle": 3600,  # Recycle connections after 1 hour
+                    "connect_args": {
+                        "timeout": 10,  # Connection timeout in seconds
+                        "command_timeout": 30,  # Query timeout in seconds
+                    }
+                })
+            else:
+                # NullPool for development - still add timeouts
+                engine_kwargs["connect_args"] = {
+                    "timeout": 10,
+                    "command_timeout": 30,
+                }
 
-        # Create async engine
-        _engine = create_async_engine(settings.DATABASE_URL, **engine_kwargs)
+            # Create async engine
+            _engine = create_async_engine(settings.DATABASE_URL, **engine_kwargs)
 
-        # Create session maker
-        _async_session_maker = async_sessionmaker(
-            _engine,
-            class_=AsyncSession,
-            expire_on_commit=False,  # Don't expire objects after commit
-            autocommit=False,
-            autoflush=False,
-        )
+            # Create session maker
+            _async_session_maker = async_sessionmaker(
+                _engine,
+                class_=AsyncSession,
+                expire_on_commit=False,  # Don't expire objects after commit
+                autocommit=False,
+                autoflush=False,
+            )
 
-        logger.info("Database connection initialized successfully")
+            # Test the connection
+            from sqlalchemy import text
+            async with _engine.connect() as conn:
+                await conn.execute(text("SELECT 1"))
 
-    except Exception as e:
-        logger.error(f"Failed to initialize database: {str(e)}", exc_info=True)
-        raise
+            logger.info("Database connection initialized successfully")
+            return
+
+        except Exception as e:
+            if attempt < max_retries - 1:
+                sleep_time = 2 ** attempt  # Exponential backoff: 1, 2, 4, 8, 16 seconds
+                logger.warning(
+                    f"Database initialization failed (attempt {attempt + 1}/{max_retries}): {str(e)}. "
+                    f"Retrying in {sleep_time}s..."
+                )
+                await asyncio.sleep(sleep_time)
+            else:
+                logger.error(
+                    f"Failed to initialize database after {max_retries} attempts: {str(e)}",
+                    exc_info=True
+                )
+                raise
 
 
 async def close_db() -> None:
@@ -163,41 +195,70 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             await session.close()
 
 
-async def init_redis() -> None:
+async def init_redis(max_retries: int = 5) -> None:
     """
-    Initialize Redis connection pool and client.
+    Initialize Redis connection pool and client with retry logic.
 
     Creates Redis client with connection pooling for efficient connection reuse.
     Should be called on application startup.
+
+    Args:
+        max_retries: Maximum number of retry attempts for transient failures
     """
     global _redis_client, _redis_pool
 
-    try:
-        logger.info("Initializing Redis connection...")
+    for attempt in range(max_retries):
+        try:
+            logger.info(f"Initializing Redis connection (attempt {attempt + 1}/{max_retries})...")
 
-        # Create connection pool
-        _redis_pool = ConnectionPool.from_url(
-            settings.REDIS_URL,
-            max_connections=settings.REDIS_MAX_CONNECTIONS,
-            decode_responses=True,  # Automatically decode responses to strings
-            socket_connect_timeout=5,
-            socket_keepalive=True,
-        )
+            # Create connection pool with timeouts
+            _redis_pool = ConnectionPool.from_url(
+                settings.REDIS_URL,
+                max_connections=settings.REDIS_MAX_CONNECTIONS,
+                decode_responses=True,  # Automatically decode responses to strings
+                socket_connect_timeout=5,  # Connection timeout
+                socket_timeout=10,  # Operation timeout (NEW)
+                socket_keepalive=True,
+                retry_on_timeout=True,  # Retry on timeout (NEW)
+            )
 
-        # Create Redis client
-        _redis_client = Redis(connection_pool=_redis_pool)
+            # Create Redis client
+            _redis_client = Redis(connection_pool=_redis_pool)
 
-        # Test connection
-        await _redis_client.ping()
+            # Test connection
+            await _redis_client.ping()
 
-        logger.info("Redis connection initialized successfully")
+            logger.info("Redis connection initialized successfully")
+            return
 
-    except RedisError as e:
-        logger.error(f"Failed to initialize Redis: {str(e)}", exc_info=True)
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error initializing Redis: {str(e)}", exc_info=True)
-        raise
+        except RedisError as e:
+            if attempt < max_retries - 1:
+                sleep_time = 2 ** attempt  # Exponential backoff: 1, 2, 4, 8, 16 seconds
+                logger.warning(
+                    f"Redis initialization failed (attempt {attempt + 1}/{max_retries}): {str(e)}. "
+                    f"Retrying in {sleep_time}s..."
+                )
+                await asyncio.sleep(sleep_time)
+            else:
+                logger.error(
+                    f"Failed to initialize Redis after {max_retries} attempts: {str(e)}",
+                    exc_info=True
+                )
+                raise
+        except Exception as e:
+            if attempt < max_retries - 1:
+                sleep_time = 2 ** attempt
+                logger.warning(
+                    f"Unexpected error initializing Redis (attempt {attempt + 1}/{max_retries}): {str(e)}. "
+                    f"Retrying in {sleep_time}s..."
+                )
+                await asyncio.sleep(sleep_time)
+            else:
+                logger.error(
+                    f"Unexpected error initializing Redis after {max_retries} attempts: {str(e)}",
+                    exc_info=True
+                )
+                raise
 
 
 async def close_redis() -> None:
