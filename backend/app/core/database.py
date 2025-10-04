@@ -82,16 +82,23 @@ async def init_db() -> None:
         # Determine pooling strategy based on environment
         poolclass = QueuePool if settings.is_production else NullPool
 
+        # Create engine kwargs
+        engine_kwargs = {
+            "echo": settings.DB_ECHO,
+            "poolclass": poolclass,
+        }
+
+        # Only add pool settings if using QueuePool
+        if poolclass == QueuePool:
+            engine_kwargs.update({
+                "pool_size": settings.DB_POOL_SIZE,
+                "max_overflow": settings.DB_MAX_OVERFLOW,
+                "pool_pre_ping": True,  # Verify connections before using
+                "pool_recycle": 3600,  # Recycle connections after 1 hour
+            })
+
         # Create async engine
-        _engine = create_async_engine(
-            settings.DATABASE_URL,
-            echo=settings.DB_ECHO,
-            pool_size=settings.DB_POOL_SIZE if settings.is_production else 5,
-            max_overflow=settings.DB_MAX_OVERFLOW if settings.is_production else 10,
-            poolclass=poolclass,
-            pool_pre_ping=True,  # Verify connections before using
-            pool_recycle=3600,  # Recycle connections after 1 hour
-        )
+        _engine = create_async_engine(settings.DATABASE_URL, **engine_kwargs)
 
         # Create session maker
         _async_session_maker = async_sessionmaker(
