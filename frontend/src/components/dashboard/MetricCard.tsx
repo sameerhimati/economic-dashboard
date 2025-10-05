@@ -7,6 +7,8 @@ import type { EconomicIndicator } from '@/types'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
 import { useBookmarks } from '@/hooks/useBookmarks'
+import { AnimatedNumber } from '@/components/ui/count-up'
+import { toast } from 'sonner'
 
 interface MetricCardProps {
   metric: EconomicIndicator
@@ -26,36 +28,51 @@ export function MetricCard({ metric }: MetricCardProps) {
   const color = isPositive ? '#10b981' : isNeutral ? '#6b7280' : '#ef4444'
 
   return (
-    <Card
-      className={cn(
-        "group relative overflow-hidden transition-all duration-200",
-        "bg-gradient-to-br from-card to-card/80",
-        "hover:from-card hover:to-accent/5",
-        "hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10",
-        "cursor-pointer transform hover:scale-[1.01]",
-        "active:scale-[0.99]"
-      )}
-      onClick={() => {
-        // TODO: Open metric details modal
-        console.log('Clicked metric:', metric.name)
-      }}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      whileHover={{ y: -4 }}
     >
-      {/* Bookmark/Save button */}
-      <Button
-        variant="ghost"
-        size="icon"
+      <Card
         className={cn(
-          "absolute top-2 right-2 h-6 w-6 z-10 transition-all",
-          bookmarked ? "opacity-100" : "opacity-0 group-hover:opacity-100",
-          bookmarked && "text-yellow-500 hover:text-yellow-600"
+          "group relative overflow-hidden transition-all duration-200",
+          "bg-gradient-to-br from-card to-card/80",
+          "hover:from-card hover:to-accent/5",
+          "hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10",
+          "cursor-pointer",
+          "card-hover"
         )}
-        onClick={(e) => {
-          e.stopPropagation()
-          toggleBookmark(metricId)
+        onClick={() => {
+          toast.info(metric?.name || 'Metric Details', {
+            description: metric?.description || 'View full metric details',
+            duration: 3000,
+          })
         }}
       >
-        <Star className={cn("h-3.5 w-3.5 transition-all", bookmarked && "fill-current")} />
-      </Button>
+        {/* Bookmark/Save button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "absolute top-2 right-2 h-6 w-6 z-10 transition-all",
+            bookmarked ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+            bookmarked && "text-yellow-500 hover:text-yellow-600"
+          )}
+          onClick={(e) => {
+            e.stopPropagation()
+            toggleBookmark(metricId)
+            toast.success(
+              bookmarked ? 'Removed from favorites' : 'Added to favorites',
+              {
+                description: metric?.name,
+                duration: 2000,
+              }
+            )
+          }}
+        >
+          <Star className={cn("h-3.5 w-3.5 transition-all", bookmarked && "fill-current")} />
+        </Button>
 
       {/* Subtle accent bar on left */}
       <div
@@ -76,15 +93,12 @@ export function MetricCard({ metric }: MetricCardProps) {
       <CardContent className="space-y-4 pl-5">
         <div className="flex items-end justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <motion.div
-              className="text-3xl font-bold tracking-tight metric-value mb-1"
-              initial={{ scale: 1 }}
-              animate={{ scale: 1 }}
-              key={metric?.value}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            >
-              {formatNumber(metric?.value ?? 0)}
-            </motion.div>
+            <div className="text-3xl font-bold tracking-tight metric-value mb-1">
+              <AnimatedNumber
+                value={metric?.value ?? 0}
+                formatValue={(val) => formatNumber(val)}
+              />
+            </div>
             <div
               className={cn(
                 'inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-semibold transition-colors',
@@ -131,5 +145,6 @@ export function MetricCard({ metric }: MetricCardProps) {
         )}
       </CardContent>
     </Card>
+    </motion.div>
   )
 }

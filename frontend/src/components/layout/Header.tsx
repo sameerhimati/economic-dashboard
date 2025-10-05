@@ -7,16 +7,30 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { TrendingUp, LogOut, Sun, Moon, Monitor } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { TrendingUp, LogOut, Sun, Moon, Monitor, Settings } from 'lucide-react'
+import { useEffect, useState, useCallback } from 'react'
+import { SettingsModal } from '@/components/settings/SettingsModal'
+import { useDayGradient } from '@/hooks/useDayGradient'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 
 type Theme = 'light' | 'dark' | 'system'
 
 export function Header() {
   const { user, logout } = useAuth()
+  const { gradient } = useDayGradient()
   const [theme, setTheme] = useState<Theme>(() => {
     const savedTheme = localStorage.getItem('theme') as Theme
     return savedTheme || 'dark'
+  })
+  const [settingsOpen, setSettingsOpen] = useState(false)
+
+  const handleOpenSettings = useCallback(() => {
+    setSettingsOpen(true)
+  }, [])
+
+  // Add keyboard shortcut for settings
+  useKeyboardShortcuts({
+    onSettings: handleOpenSettings,
   })
 
   useEffect(() => {
@@ -47,64 +61,88 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <TrendingUp className="h-5 w-5 text-primary" />
-          <h1 className="text-lg font-semibold tracking-tight">
-            Economic Dashboard
-          </h1>
-        </div>
+    <>
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            <div>
+              <h1 className="text-lg font-semibold tracking-tight">
+                Economic Dashboard
+              </h1>
+              <p className="text-[10px] text-muted-foreground hidden sm:block">
+                {gradient.description}
+              </p>
+            </div>
+          </div>
 
-        <div className="flex items-center gap-4">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                {theme === 'light' ? (
-                  <Sun className="h-4 w-4" />
-                ) : theme === 'dark' ? (
-                  <Moon className="h-4 w-4" />
-                ) : (
-                  <Monitor className="h-4 w-4" />
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setTheme('light')}>
-                <Sun className="mr-2 h-4 w-4" />
-                Light
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setTheme('dark')}>
-                <Moon className="mr-2 h-4 w-4" />
-                Dark
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setTheme('system')}>
-                <Monitor className="mr-2 h-4 w-4" />
-                System
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSettingsOpen(true)}
+              className="h-8 w-8"
+              title="Settings (Cmd+K)"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
 
-          {user && (
-            <>
-              <div className="flex items-center gap-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
-                    {getInitials(user?.username, user?.email)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="hidden sm:block">
-                  <p className="text-sm font-medium leading-none">{user?.username || 'User'}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{user?.email || ''}</p>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  {theme === 'light' ? (
+                    <Sun className="h-4 w-4" />
+                  ) : theme === 'dark' ? (
+                    <Moon className="h-4 w-4" />
+                  ) : (
+                    <Monitor className="h-4 w-4" />
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setTheme('light')}>
+                  <Sun className="mr-2 h-4 w-4" />
+                  Light
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme('dark')}>
+                  <Moon className="mr-2 h-4 w-4" />
+                  Dark
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme('system')}>
+                  <Monitor className="mr-2 h-4 w-4" />
+                  System
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {user && (
+              <>
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
+                      {getInitials(user?.username, user?.email)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="hidden sm:block">
+                    <p className="text-sm font-medium leading-none">{user?.username || 'User'}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{user?.email || ''}</p>
+                  </div>
                 </div>
-              </div>
-              <Button variant="ghost" size="icon" onClick={logout} className="h-8 w-8">
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </>
-          )}
+                <Button variant="ghost" size="icon" onClick={logout} className="h-8 w-8">
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      <SettingsModal
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        theme={theme}
+        onThemeChange={setTheme}
+      />
+    </>
   )
 }
