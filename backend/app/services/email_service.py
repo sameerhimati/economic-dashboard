@@ -96,6 +96,16 @@ class EmailService:
         self.imap_port = settings.IMAP_PORT
         self.connection: Optional[imaplib.IMAP4_SSL] = None
 
+        # Validate required configuration
+        if not self.email_address:
+            logger.warning("EMAIL_ADDRESS not configured")
+        if not self.email_password:
+            logger.warning("EMAIL_APP_PASSWORD not configured")
+        if not self.imap_server:
+            logger.warning("IMAP_SERVER not configured")
+        if not self.imap_port:
+            logger.warning("IMAP_PORT not configured")
+
     def _connect_with_retry(self, max_retries: int = 3) -> imaplib.IMAP4_SSL:
         """
         Connect to IMAP server with exponential backoff retry logic.
@@ -109,6 +119,20 @@ class EmailService:
         Raises:
             EmailServiceError: If connection fails after all retries
         """
+        # Validate configuration before attempting connection
+        if not self.email_address or not self.email_password:
+            raise EmailServiceError(
+                "Email credentials not configured. Please set EMAIL_ADDRESS and EMAIL_APP_PASSWORD environment variables."
+            )
+        if not self.imap_server:
+            raise EmailServiceError(
+                "IMAP server not configured. Please set IMAP_SERVER environment variable."
+            )
+        if not self.imap_port:
+            raise EmailServiceError(
+                "IMAP port not configured. Please set IMAP_PORT environment variable."
+            )
+
         for attempt in range(max_retries):
             try:
                 logger.info(
@@ -619,48 +643,95 @@ class EmailService:
         """
         try:
             # Run synchronous fetch in thread pool
+            logger.info(f"Fetching emails from IMAP (last {days} days)")
             loop = asyncio.get_event_loop()
             fetch_func = partial(self.fetch_emails, days=days, sender_filter=sender_filter)
-            emails = await loop.run_in_executor(None, fetch_func)
+
+            try:
+                emails = await loop.run_in_executor(None, fetch_func)
+            except EmailServiceError as e:
+                # Re-raise email service errors as-is
+                logger.error(f"Email fetch failed: {e.message}")
+                raise
+            except Exception as e:
+                logger.error(f"Unexpected error during email fetch: {str(e)}", exc_info=True)
+                raise EmailServiceError(
+                    f"Failed to fetch emails from IMAP: {str(e)}",
+                    original_error=e
+                )
+
+            if not emails:
+                logger.info("No emails found matching criteria")
+                return {
+                    "status": "success",
+                    "fetched": 0,
+                    "stored": 0,
+                    "skipped": 0,
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }
+
+            logger.info(f"Fetched {len(emails)} emails, processing for storage")
 
             # Store emails in database
             stored_count = 0
             skipped_count = 0
 
             for email_data in emails:
-                # Check if email already exists
-                result = await db.execute(
-                    select(Newsletter).where(
-                        and_(
-                            Newsletter.subject == email_data["subject"],
-                            Newsletter.received_date == email_data["received_date"]
+                try:
+                    # Check if email already exists
+                    result = await db.execute(
+                        select(Newsletter).where(
+                            and_(
+                                Newsletter.subject == email_data["subject"],
+                                Newsletter.received_date == email_data["received_date"]
+                            )
                         )
                     )
-                )
-                existing = result.scalar_one_or_none()
+                    existing = result.scalar_one_or_none()
 
-                if existing:
-                    logger.debug(f"Newsletter already exists: {email_data['subject'][:50]}...")
-                    skipped_count += 1
+                    if existing:
+                        logger.debug(f"Newsletter already exists: {email_data['subject'][:50]}...")
+                        skipped_count += 1
+                        continue
+
+                    # Create newsletter record
+                    newsletter = Newsletter(
+                        source=email_data["source"],
+                        category=email_data["category"],
+                        subject=email_data["subject"],
+                        content_html=email_data["content_html"],
+                        content_text=email_data["content_text"],
+                        key_points=email_data["key_points"],
+                        received_date=email_data["received_date"],
+                        parsed_date=datetime.now(timezone.utc)
+                    )
+
+                    db.add(newsletter)
+                    stored_count += 1
+
+                except Exception as e:
+                    logger.error(
+                        f"Error processing individual email: {email_data.get('subject', 'unknown')[:50]}, "
+                        f"error: {str(e)}",
+                        exc_info=True
+                    )
+                    # Continue processing other emails even if one fails
                     continue
 
-                # Create newsletter record
-                newsletter = Newsletter(
-                    source=email_data["source"],
-                    category=email_data["category"],
-                    subject=email_data["subject"],
-                    content_html=email_data["content_html"],
-                    content_text=email_data["content_text"],
-                    key_points=email_data["key_points"],
-                    received_date=email_data["received_date"],
-                    parsed_date=datetime.now(timezone.utc)
-                )
-
-                db.add(newsletter)
-                stored_count += 1
-
             # Commit all newsletters
-            await db.commit()
+            try:
+                await db.commit()
+                logger.info(
+                    f"Database commit successful: {stored_count} newsletters stored, "
+                    f"{skipped_count} skipped (duplicates)"
+                )
+            except Exception as e:
+                await db.rollback()
+                logger.error(f"Database commit failed: {str(e)}", exc_info=True)
+                raise EmailServiceError(
+                    f"Failed to save newsletters to database: {str(e)}",
+                    original_error=e
+                )
 
             logger.info(
                 f"Newsletter fetch complete: {stored_count} stored, "
@@ -675,9 +746,13 @@ class EmailService:
                 "timestamp": datetime.now(timezone.utc).isoformat()
             }
 
+        except EmailServiceError:
+            # Re-raise EmailServiceError as-is
+            await db.rollback()
+            raise
         except Exception as e:
             await db.rollback()
-            logger.error(f"Error in fetch_and_store_emails: {str(e)}", exc_info=True)
+            logger.error(f"Unexpected error in fetch_and_store_emails: {str(e)}", exc_info=True)
             raise EmailServiceError(
                 f"Failed to fetch and store emails: {str(e)}",
                 original_error=e

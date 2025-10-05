@@ -237,7 +237,8 @@ async def fetch_newsletters(
         HTTPException 400: If days parameter is invalid
         HTTPException 500: If fetch operation fails
     """
-    logger.info(f"Manual newsletter fetch triggered by user: {current_user.email}, days={days}")
+    user_email = current_user.email if current_user else "anonymous"
+    logger.info(f"Manual newsletter fetch triggered by user: {user_email}, days={days}")
 
     if days < 1 or days > 30:
         raise HTTPException(
@@ -246,46 +247,102 @@ async def fetch_newsletters(
         )
 
     try:
-        # Fetch and store emails
-        result = await email_service.fetch_and_store_emails(
-            db=db,
-            days=days,
-            sender_filter=['@bisnow.com', '@mail.bisnow.com']
-        )
+        logger.info("Starting newsletter fetch operation")
 
-        if result["status"] != "success":
+        # Fetch and store emails
+        try:
+            result = await email_service.fetch_and_store_emails(
+                db=db,
+                days=days,
+                sender_filter=['@bisnow.com', '@mail.bisnow.com']
+            )
+        except EmailServiceError as e:
+            # Handle specific email service errors with detailed logging
+            logger.error(
+                f"Email service error during fetch: {e.message}",
+                exc_info=True,
+                extra={
+                    "user": user_email,
+                    "days": days,
+                    "error_type": type(e).__name__
+                }
+            )
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Newsletter fetch failed"
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"Email service unavailable: {e.message}. Please check email credentials and IMAP server connectivity."
             )
 
+        # Validate result structure
+        if not result or not isinstance(result, dict):
+            logger.error(f"Invalid result from email service: {result}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Email service returned invalid response"
+            )
+
+        # Check operation status
+        if result.get("status") != "success":
+            error_msg = result.get("message", "Unknown error")
+            logger.error(f"Newsletter fetch failed with status: {result.get('status')}, message: {error_msg}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Newsletter fetch failed: {error_msg}"
+            )
+
+        # Extract counts with defaults
+        fetched = result.get("fetched", 0)
+        stored = result.get("stored", 0)
+        skipped = result.get("skipped", 0)
+        timestamp = result.get("timestamp", datetime.now(timezone.utc).isoformat())
+
         logger.info(
-            f"Newsletter fetch completed: {result['stored']} stored, "
-            f"{result['skipped']} skipped"
+            f"Newsletter fetch completed successfully: {stored} stored, {skipped} skipped out of {fetched} fetched",
+            extra={
+                "user": user_email,
+                "days": days,
+                "fetched": fetched,
+                "stored": stored,
+                "skipped": skipped
+            }
         )
 
         return NewsletterFetchResponse(
             status=result["status"],
-            fetched=result["fetched"],
-            stored=result["stored"],
-            skipped=result["skipped"],
-            timestamp=result["timestamp"]
+            fetched=fetched,
+            stored=stored,
+            skipped=skipped,
+            timestamp=timestamp
         )
 
+    except HTTPException:
+        # Re-raise HTTP exceptions without modification
+        raise
     except EmailServiceError as e:
-        logger.error(f"Email service error: {e.message}", exc_info=True)
+        # Catch any EmailServiceError not caught in inner try block
+        logger.error(
+            f"Unexpected email service error: {e.message}",
+            exc_info=True,
+            extra={"user": user_email, "days": days}
+        )
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Email service error: {e.message}"
         )
-    except HTTPException:
-        raise
     except Exception as e:
+        # Catch all other exceptions
         await db.rollback()
-        logger.error(f"Error fetching newsletters: {str(e)}", exc_info=True)
+        logger.error(
+            f"Unexpected error in newsletter fetch endpoint: {str(e)}",
+            exc_info=True,
+            extra={
+                "user": user_email,
+                "days": days,
+                "error_type": type(e).__name__
+            }
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error fetching newsletters: {str(e)}"
+            detail=f"Internal server error while fetching newsletters. Please try again later."
         )
 
 

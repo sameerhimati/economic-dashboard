@@ -2,13 +2,15 @@ import { useState } from 'react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ChevronDown, ChevronUp, TrendingUp, DollarSign, Building, BadgeDollarSign, Percent, MapPin, Building2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, TrendingUp, DollarSign, Building, BadgeDollarSign, Percent, MapPin, Building2, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { NewsletterModal } from './NewsletterModal'
 import type { Newsletter, MetricType } from '@/types/newsletter'
 
 interface NewsletterCardProps {
   newsletter: Newsletter
   defaultExpanded?: boolean
+  onOpenModal?: (newsletter: Newsletter) => void
 }
 
 // Map categories to badge colors
@@ -74,19 +76,29 @@ const getRelativeTime = (dateString: string): string => {
   return date.toLocaleDateString()
 }
 
-export function NewsletterCard({ newsletter, defaultExpanded = false }: NewsletterCardProps) {
+export function NewsletterCard({ newsletter, defaultExpanded = false, onOpenModal }: NewsletterCardProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const categoryColor = getCategoryColor(newsletter.category)
   const topMetrics = newsletter.key_points.metrics.slice(0, 3)
   const hasContent = newsletter.content_text || newsletter.content_html
 
+  const handleOpenModal = () => {
+    if (onOpenModal) {
+      onOpenModal(newsletter)
+    } else {
+      setIsModalOpen(true)
+    }
+  }
+
   return (
-    <Card className={cn(
-      "transition-all duration-200 hover:shadow-md",
-      isExpanded && "ring-2 ring-primary/20"
-    )}>
-      <CardHeader className="pb-3">
+    <>
+      <Card className={cn(
+        "transition-all duration-200 hover:shadow-md",
+        isExpanded && "ring-2 ring-primary/20"
+      )}>
+        <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
@@ -216,14 +228,14 @@ export function NewsletterCard({ newsletter, defaultExpanded = false }: Newslett
               </div>
             )}
 
-            {/* Full Content */}
+            {/* Full Content Preview */}
             {newsletter.content_text && (
               <div className="space-y-2">
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Full Content
+                  Content Preview
                 </h4>
-                <div className="p-3 rounded-lg bg-muted/30 max-h-96 overflow-y-auto">
-                  <p className="text-sm whitespace-pre-wrap break-words">
+                <div className="p-3 rounded-lg bg-muted/30 max-h-48 overflow-y-auto">
+                  <p className="text-sm whitespace-pre-wrap break-words line-clamp-6">
                     {newsletter.content_text}
                   </p>
                 </div>
@@ -242,7 +254,30 @@ export function NewsletterCard({ newsletter, defaultExpanded = false }: Newslett
             </div>
           </div>
         )}
+
+        {/* View Full Content Button */}
+        {hasContent && (
+          <div className="pt-4 border-t mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleOpenModal}
+              className="w-full gap-2"
+            >
+              <ExternalLink className="h-4 w-4" />
+              View Full Newsletter
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
+
+    {/* Modal */}
+    <NewsletterModal
+      newsletter={newsletter}
+      open={isModalOpen}
+      onOpenChange={setIsModalOpen}
+    />
+    </>
   )
 }
