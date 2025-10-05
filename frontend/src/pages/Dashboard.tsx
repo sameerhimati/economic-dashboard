@@ -178,7 +178,7 @@ export function Dashboard() {
 
           {/* Newsletter Integration Section */}
           <div className="grid gap-6 lg:grid-cols-2 border-t pt-12">
-            <RealEstateHighlights limit={5} showViewAll={false} />
+            <RealEstateHighlights limit={5} showViewAll={true} />
             <LatestDealsCard />
           </div>
 
