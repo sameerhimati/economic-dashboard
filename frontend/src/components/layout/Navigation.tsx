@@ -10,7 +10,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Overview', href: '#overview' },
+  { icon: LayoutDashboard, label: 'Overview', href: '/', isRoute: true },
   { icon: TrendingUp, label: 'Metrics', href: '#metrics' },
   { icon: Newspaper, label: 'Breaking News', href: '#breaking' },
   { icon: Calendar, label: 'Weekly Summary', href: '#weekly' },

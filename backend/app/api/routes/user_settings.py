@@ -61,8 +61,8 @@ async def get_email_config(
 
     return UserEmailConfigResponse(
         email_address=current_user.email_address,
-        imap_server=current_user.imap_server,
-        imap_port=current_user.imap_port,
+        imap_server=current_user.imap_server or "imap.gmail.com",
+        imap_port=current_user.imap_port or 993,
         is_configured=is_configured
     )
 
@@ -130,8 +130,8 @@ async def update_email_config(
 
         return UserEmailConfigResponse(
             email_address=current_user.email_address,
-            imap_server=current_user.imap_server,
-            imap_port=current_user.imap_port,
+            imap_server=current_user.imap_server or "imap.gmail.com",
+            imap_port=current_user.imap_port or 993,
             is_configured=is_configured
         )
 

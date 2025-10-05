@@ -55,8 +55,7 @@ def upgrade() -> None:
         sa.Column(
             'imap_server',
             sa.String(length=255),
-            nullable=False,
-            server_default='imap.gmail.com',
+            nullable=True,  # Temporarily nullable for migration
             comment='IMAP server for email fetching'
         )
     )
@@ -66,8 +65,7 @@ def upgrade() -> None:
         sa.Column(
             'imap_port',
             sa.Integer(),
-            nullable=False,
-            server_default='993',
+            nullable=True,  # Temporarily nullable for migration
             comment='IMAP port for email fetching'
         )
     )
@@ -81,6 +79,21 @@ def upgrade() -> None:
             comment='Newsletter preferences including categories, fetch settings, and last fetch timestamp'
         )
     )
+
+    # Update existing users with default values
+    # This ensures all existing users have valid values before making columns non-nullable
+    op.execute("""
+        UPDATE users
+        SET
+            imap_server = 'imap.gmail.com',
+            imap_port = 993,
+            newsletter_preferences = '{}'::jsonb
+        WHERE imap_server IS NULL
+    """)
+
+    # Now make imap_server and imap_port non-nullable with server defaults
+    op.alter_column('users', 'imap_server', nullable=False, server_default='imap.gmail.com')
+    op.alter_column('users', 'imap_port', nullable=False, server_default='993')
 
     # Add user_id column to newsletters table (nullable initially for migration)
     op.add_column(
