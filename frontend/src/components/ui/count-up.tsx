@@ -46,7 +46,9 @@ interface AnimatedNumberProps {
 }
 
 export function AnimatedNumber({ value, className = '', formatValue }: AnimatedNumberProps) {
-  const springValue = useSpring(0, {
+  const isFirstRender = useRef(true)
+
+  const springValue = useSpring(value, {
     duration: 1000,
     bounce: 0,
   })
@@ -58,12 +60,14 @@ export function AnimatedNumber({ value, className = '', formatValue }: AnimatedN
     return latest.toFixed(0)
   })
 
-  const prevValueRef = useRef(value)
-
   useEffect(() => {
-    if (prevValueRef.current !== value) {
+    if (isFirstRender.current) {
+      // On first render, set immediately without animation
       springValue.set(value)
-      prevValueRef.current = value
+      isFirstRender.current = false
+    } else {
+      // On subsequent updates, animate
+      springValue.set(value)
     }
   }, [value, springValue])
 
