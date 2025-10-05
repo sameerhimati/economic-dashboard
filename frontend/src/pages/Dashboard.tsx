@@ -39,20 +39,50 @@ export function Dashboard() {
   } = useSettings()
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
 
-  // Combine all metrics from all sources
+  // Combine all metrics from all sources (for Favorites)
   const allMetrics = useMemo(() => {
     const combined: EconomicIndicator[] = []
-    if (todayFeed?.indicators) combined.push(...todayFeed.indicators)
-    if (metrics?.metrics) combined.push(...metrics.metrics)
+    const seenIds = new Set<string>()
+
+    // Add from Today Feed
+    if (todayFeed?.indicators) {
+      todayFeed.indicators.forEach(metric => {
+        const id = metric?.id || metric?.name || ''
+        if (id && !seenIds.has(id)) {
+          combined.push(metric)
+          seenIds.add(id)
+        }
+      })
+    }
+
+    // Add from Additional Metrics (only if not already added)
+    if (metrics?.metrics) {
+      metrics.metrics.forEach(metric => {
+        const id = metric?.id || metric?.name || ''
+        if (id && !seenIds.has(id)) {
+          combined.push(metric)
+          seenIds.add(id)
+        }
+      })
+    }
+
     return combined
   }, [todayFeed, metrics])
 
-  // Filter bookmarked metrics
+  // Filter bookmarked metrics (unique)
   const bookmarkedMetrics = useMemo(() => {
-    return allMetrics.filter((metric) => {
+    const uniqueBookmarked: EconomicIndicator[] = []
+    const seenIds = new Set<string>()
+
+    allMetrics.forEach((metric) => {
       const metricId = metric?.id || metric?.name || ''
-      return bookmarkedIds.has(metricId)
+      if (metricId && bookmarkedIds.has(metricId) && !seenIds.has(metricId)) {
+        uniqueBookmarked.push(metric)
+        seenIds.add(metricId)
+      }
     })
+
+    return uniqueBookmarked
   }, [allMetrics, bookmarkedIds])
 
   // Filter non-bookmarked metrics for Additional Metrics section

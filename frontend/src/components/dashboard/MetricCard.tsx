@@ -51,13 +51,12 @@ export function MetricCard({ metric }: MetricCardProps) {
         }}
       >
         {/* Bookmark/Save button */}
-        <Button
-          variant="ghost"
-          size="icon"
+        <button
           className={cn(
-            "absolute top-2 right-2 h-6 w-6 z-10 transition-all",
+            "absolute top-2 right-2 h-6 w-6 z-10 transition-all flex items-center justify-center",
+            "hover:scale-110 active:scale-95",
             bookmarked ? "opacity-100" : "opacity-0 group-hover:opacity-100",
-            bookmarked && "text-yellow-500 hover:text-yellow-600"
+            bookmarked ? "text-yellow-500" : "text-muted-foreground hover:text-foreground"
           )}
           onClick={(e) => {
             e.stopPropagation()
@@ -71,8 +70,8 @@ export function MetricCard({ metric }: MetricCardProps) {
             )
           }}
         >
-          <Star className={cn("h-3.5 w-3.5 transition-all", bookmarked && "fill-current")} />
-        </Button>
+          <Star className={cn("h-4 w-4 transition-all", bookmarked && "fill-current")} />
+        </button>
 
       {/* Subtle accent bar on left */}
       <div
