@@ -564,8 +564,8 @@ class EmailService:
                     status, msg_data = self.connection.fetch(email_id, '(RFC822)')
 
                     if status != 'OK':
-                    logger.warning(f"Failed to fetch email {email_id}")
-                    continue
+                        logger.warning(f"Failed to fetch email {email_id}")
+                        continue
 
                     # Parse email
                     raw_email = msg_data[0][1]
@@ -576,8 +576,8 @@ class EmailService:
 
                     # Filter by sender
                     if sender_filter:
-                    if not any(domain in sender for domain in sender_filter):
-                        continue
+                        if not any(domain in sender for domain in sender_filter):
+                            continue
 
                     # Get subject
                     subject = msg.get('Subject', '')
@@ -585,47 +585,47 @@ class EmailService:
                     # Get date
                     date_str = msg.get('Date', '')
                     try:
-                    from email.utils import parsedate_to_datetime
-                    received_date = parsedate_to_datetime(date_str)
-                except Exception:
-                    received_date = datetime.now(timezone.utc)
+                        from email.utils import parsedate_to_datetime
+                        received_date = parsedate_to_datetime(date_str)
+                    except Exception:
+                        received_date = datetime.now(timezone.utc)
 
                     # Get email body
                     html_content, text_content = self._get_email_body(msg)
 
                     # Skip if no content
                     if not html_content and not text_content:
-                    logger.warning(f"No content found in email: {subject}")
-                    continue
+                        logger.warning(f"No content found in email: {subject}")
+                        continue
 
                     # Extract plain text if not available
                     if not text_content and html_content:
-                    text_content = self._extract_text_from_html(html_content)
+                        text_content = self._extract_text_from_html(html_content)
 
                     # Identify category
                     category = self._identify_category(subject)
 
                     # Parse content and extract key points
                     key_points = self._parse_email_content(
-                    html_content or "",
-                    text_content or ""
+                        html_content or "",
+                        text_content or ""
                     )
 
                     parsed_email = {
-                    "source": sender,
-                    "category": category,
-                    "subject": subject,
-                    "content_html": html_content,
-                    "content_text": text_content,
-                    "key_points": key_points,
-                    "received_date": received_date,
+                        "source": sender,
+                        "category": category,
+                        "subject": subject,
+                        "content_html": html_content,
+                        "content_text": text_content,
+                        "key_points": key_points,
+                        "received_date": received_date,
                     }
 
                     parsed_emails.append(parsed_email)
 
                     logger.info(
-                    f"Parsed email: {subject[:50]}... "
-                    f"(category: {category}, metrics: {len(key_points.get('metrics', []))})"
+                        f"Parsed email: {subject[:50]}... "
+                        f"(category: {category}, metrics: {len(key_points.get('metrics', []))})"
                     )
 
                 except Exception as e:
