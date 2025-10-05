@@ -6,9 +6,10 @@ import { TrendingUp, LogOut } from 'lucide-react'
 export function Header() {
   const { user, logout } = useAuth()
 
-  const getInitials = (name?: string) => {
-    if (!name) return '??'
-    const parts = name.split(' ').filter(part => part.length > 0)
+  const getInitials = (name?: string, email?: string) => {
+    if (!name && !email) return '??'
+    const displayName = name || email?.split('@')[0] || '??'
+    const parts = displayName.split(' ').filter(part => part.length > 0)
     if (parts.length === 0) return '??'
     return parts
       .map((n) => n[0] || '')
@@ -33,7 +34,7 @@ export function Header() {
               <div className="flex items-center gap-3">
                 <Avatar className="h-8 w-8">
                   <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
-                    {getInitials(user?.username)}
+                    {getInitials(user?.username, user?.email)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="hidden sm:block">

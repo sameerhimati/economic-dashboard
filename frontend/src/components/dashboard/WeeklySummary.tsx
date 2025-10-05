@@ -20,20 +20,9 @@ export function WeeklySummary({ data, isLoading }: WeeklySummaryProps) {
     )
   }
 
-  if (!data) {
-    return (
-      <Card id="weekly">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Weekly Summary
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground text-center">No weekly summary available</p>
-        </CardContent>
-      </Card>
-    )
+  // Don't render anything if there's no data or no summary
+  if (!data || !data.summary) {
+    return null
   }
 
   return (

@@ -34,7 +34,7 @@ export function Dashboard() {
 
   return (
     <Layout>
-      <div className="space-y-8">
+      <div className="space-y-12">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-bold tracking-tight">Economic Dashboard</h1>
@@ -78,7 +78,7 @@ export function Dashboard() {
               </div>
             </div>
           ) : metrics?.metrics && Array.isArray(metrics.metrics) && metrics.metrics.length > 0 ? (
-            <div className="space-y-4 animate-fade-in">
+            <div className="space-y-4 animate-fade-in border-t pt-12">
               <div>
                 <h2 className="text-3xl font-bold tracking-tight">Additional Metrics</h2>
                 <p className="text-sm text-muted-foreground">

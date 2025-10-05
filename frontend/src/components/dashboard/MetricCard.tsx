@@ -19,7 +19,18 @@ export function MetricCard({ metric }: MetricCardProps) {
   const color = isPositive ? '#10b981' : isNeutral ? '#6b7280' : '#ef4444'
 
   return (
-    <Card className="group relative overflow-hidden transition-all duration-200 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5">
+    <Card
+      className={cn(
+        "group relative overflow-hidden transition-all duration-200",
+        "hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10",
+        "cursor-pointer transform hover:scale-[1.01]",
+        "active:scale-[0.99]"
+      )}
+      onClick={() => {
+        // TODO: Open metric details modal
+        console.log('Clicked metric:', metric.name)
+      }}
+    >
       {/* Subtle accent bar on left */}
       <div
         className={cn(

@@ -20,20 +20,9 @@ export function BreakingNews({ data, isLoading }: BreakingNewsProps) {
     )
   }
 
+  // Don't render anything if there's no data or no items
   if (!data || !data.items || data.items.length === 0) {
-    return (
-      <Card id="breaking">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5" />
-            Breaking News
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground text-center">No breaking news at this time</p>
-        </CardContent>
-      </Card>
-    )
+    return null
   }
 
   return (
