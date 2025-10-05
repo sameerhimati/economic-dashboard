@@ -31,7 +31,7 @@ export function Navigation() {
 
   return (
     <nav className="border-b bg-background">
-      <div className="container">
+      <div className="container px-4">
         <div className="flex gap-1 overflow-x-auto py-2">
           {navItems.map((item) => {
             const Icon = item.icon
