@@ -7,7 +7,7 @@
   --foreground: 0 0% 98%;          /* zinc-50 equivalent */
 
   /* Cards with subtle elevation */
-  --card: 0 0% 8%;                 /* Slightly lighter than background */
+  --card: 0 0% 12%;                /* More contrast from background */
   --card-foreground: 0 0% 98%;
 
   /* Popovers */
