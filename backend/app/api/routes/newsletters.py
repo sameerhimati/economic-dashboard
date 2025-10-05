@@ -216,7 +216,7 @@ async def fetch_newsletters(
     days: int = Query(7, ge=1, le=30, description="Number of days to look back"),
     db: AsyncSession = Depends(get_db),
     email_service: EmailService = Depends(get_email_service),
-    current_user: User = Depends(get_current_active_user),
+    current_user: Optional[User] = Depends(get_optional_current_user),
 ) -> NewsletterFetchResponse:
     """
     Manually trigger newsletter fetch from email.
