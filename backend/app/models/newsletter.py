@@ -15,6 +15,7 @@ from app.models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.user import User
+    from app.models.bookmark_list import BookmarkList
 
 
 class Newsletter(Base, TimestampMixin):
@@ -64,6 +65,15 @@ class Newsletter(Base, TimestampMixin):
     user: Mapped["User"] = relationship(
         "User",
         back_populates="newsletters"
+    )
+
+    # Many-to-many relationship with BookmarkList through newsletter_bookmarks
+    bookmark_lists: Mapped[list["BookmarkList"]] = relationship(
+        "BookmarkList",
+        secondary="newsletter_bookmarks",
+        back_populates="newsletters",
+        lazy="selectin",
+        doc="Bookmark lists that contain this newsletter"
     )
 
     # Email source/sender
