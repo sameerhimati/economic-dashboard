@@ -28,10 +28,14 @@ export interface Newsletter {
 }
 
 export interface NewsletterStats {
-  total_count: number
-  categories: Record<string, number>
-  latest_newsletter_date?: string
-  oldest_newsletter_date?: string
+  total_newsletters: number
+  by_category: Record<string, number>
+  by_source: Record<string, number>
+  date_range?: {
+    earliest: string
+    latest: string
+  }
+  recent_count: number
 }
 
 export interface NewsletterFilters {

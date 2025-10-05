@@ -43,8 +43,8 @@ export function NewsletterStats() {
   }, [])
 
   // Transform categories data for chart
-  const chartData = stats?.categories
-    ? Object.entries(stats.categories)
+  const chartData = stats?.by_category
+    ? Object.entries(stats.by_category)
         .map(([category, count]) => ({
           category: category.length > 20 ? category.substring(0, 20) + '...' : category,
           count,
@@ -95,7 +95,7 @@ export function NewsletterStats() {
   }
 
   // Show empty state if no data
-  if (!stats || stats.total_count === 0) {
+  if (!stats || stats.total_newsletters === 0) {
     return (
       <Card>
         <CardContent className="pt-6">
@@ -113,7 +113,7 @@ export function NewsletterStats() {
     )
   }
 
-  const categoryCount = Object.keys(stats.categories || {}).length
+  const categoryCount = Object.keys(stats.by_category || {}).length
 
   return (
     <div className="space-y-6">
@@ -127,7 +127,7 @@ export function NewsletterStats() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.total_count.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{stats.total_newsletters.toLocaleString()}</div>
           </CardContent>
         </Card>
 
@@ -140,7 +140,7 @@ export function NewsletterStats() {
           </CardHeader>
           <CardContent>
             <div className="text-lg font-semibold">
-              {formatDate(stats.latest_newsletter_date)}
+              {formatDate(stats.date_range?.latest)}
             </div>
           </CardContent>
         </Card>
