@@ -543,119 +543,93 @@ class EmailService:
 
             parsed_emails = []
 
-            # List available folders for debugging
-            try:
-                status, folder_list = self.connection.list()
-                if status == 'OK':
-                    logger.info(f"Available folders: {[f.decode() if isinstance(f, bytes) else f for f in folder_list[:10]]}")
-            except Exception as e:
-                logger.warning(f"Could not list folders: {e}")
+            # Select INBOX
+            self.connection.select('INBOX')
 
-            # Search in multiple folders (INBOX is guaranteed to work)
-            # Try common Gmail folder variations for All Mail
-            folders_to_search = ['INBOX', '"[Gmail]/All Mail"', '[Gmail]/All Mail', 'All Mail', '"All Mail"']
+            logger.info(f"Searching INBOX for emails: {search_criteria}")
 
-            for folder in folders_to_search:
+            # Search emails
+            status, messages = self.connection.search(None, search_criteria)
+
+            if status != 'OK':
+                raise EmailServiceError(f"Email search failed with status: {status}")
+
+            email_ids = messages[0].split()
+            logger.info(f"Found {len(email_ids)} total emails in INBOX since {since_date}")
+
+            # Process each email
+            for email_id in email_ids:
                 try:
-                    # Select folder
-                    status, _ = self.connection.select(folder, readonly=True)
-                    if status != 'OK':
-                        logger.warning(f"Could not access folder: {folder}")
-                        continue
-
-                    logger.info(f"Searching {folder} for emails: {search_criteria}")
-
-                    # Search emails
-                    status, messages = self.connection.search(None, search_criteria)
+                    # Fetch email
+                    status, msg_data = self.connection.fetch(email_id, '(RFC822)')
 
                     if status != 'OK':
-                        logger.warning(f"Email search failed in {folder} with status: {status}")
+                    logger.warning(f"Failed to fetch email {email_id}")
+                    continue
+
+                    # Parse email
+                    raw_email = msg_data[0][1]
+                    msg = email.message_from_bytes(raw_email)
+
+                    # Get sender
+                    sender = msg.get('From', '')
+
+                    # Filter by sender
+                    if sender_filter:
+                    if not any(domain in sender for domain in sender_filter):
                         continue
 
-                    email_ids = messages[0].split()
-                    logger.info(f"Found {len(email_ids)} emails in {folder}")
+                    # Get subject
+                    subject = msg.get('Subject', '')
 
-                    # Process each email in this folder
-                    for email_id in email_ids:
-                        try:
-                            # Fetch email
-                            status, msg_data = self.connection.fetch(email_id, '(RFC822)')
+                    # Get date
+                    date_str = msg.get('Date', '')
+                    try:
+                    from email.utils import parsedate_to_datetime
+                    received_date = parsedate_to_datetime(date_str)
+                except Exception:
+                    received_date = datetime.now(timezone.utc)
 
-                            if status != 'OK':
-                                logger.warning(f"Failed to fetch email {email_id}")
-                                continue
+                    # Get email body
+                    html_content, text_content = self._get_email_body(msg)
 
-                            # Parse email
-                            raw_email = msg_data[0][1]
-                            msg = email.message_from_bytes(raw_email)
+                    # Skip if no content
+                    if not html_content and not text_content:
+                    logger.warning(f"No content found in email: {subject}")
+                    continue
 
-                            # Get sender
-                            sender = msg.get('From', '')
+                    # Extract plain text if not available
+                    if not text_content and html_content:
+                    text_content = self._extract_text_from_html(html_content)
 
-                            # Filter by sender
-                            if sender_filter:
-                                if not any(domain in sender for domain in sender_filter):
-                                    continue
+                    # Identify category
+                    category = self._identify_category(subject)
 
-                            # Get subject
-                            subject = msg.get('Subject', '')
+                    # Parse content and extract key points
+                    key_points = self._parse_email_content(
+                    html_content or "",
+                    text_content or ""
+                    )
 
-                            # Get date
-                            date_str = msg.get('Date', '')
-                            try:
-                                from email.utils import parsedate_to_datetime
-                                received_date = parsedate_to_datetime(date_str)
-                            except Exception:
-                                received_date = datetime.now(timezone.utc)
+                    parsed_email = {
+                    "source": sender,
+                    "category": category,
+                    "subject": subject,
+                    "content_html": html_content,
+                    "content_text": text_content,
+                    "key_points": key_points,
+                    "received_date": received_date,
+                    }
 
-                            # Get email body
-                            html_content, text_content = self._get_email_body(msg)
+                    parsed_emails.append(parsed_email)
 
-                            # Skip if no content
-                            if not html_content and not text_content:
-                                logger.warning(f"No content found in email: {subject}")
-                                continue
-
-                            # Extract plain text if not available
-                            if not text_content and html_content:
-                                text_content = self._extract_text_from_html(html_content)
-
-                            # Identify category
-                            category = self._identify_category(subject)
-
-                            # Parse content and extract key points
-                            key_points = self._parse_email_content(
-                                html_content or "",
-                                text_content or ""
-                            )
-
-                            parsed_email = {
-                                "source": sender,
-                                "category": category,
-                                "subject": subject,
-                                "content_html": html_content,
-                                "content_text": text_content,
-                                "key_points": key_points,
-                                "received_date": received_date,
-                            }
-
-                            parsed_emails.append(parsed_email)
-
-                            logger.info(
-                                f"Parsed email: {subject[:50]}... "
-                                f"(category: {category}, metrics: {len(key_points.get('metrics', []))})"
-                            )
-
-                        except Exception as e:
-                            logger.error(f"Error processing email {email_id}: {str(e)}", exc_info=True)
-                            continue
-
-                    # Break after All Mail to avoid processing same emails twice
-                    if folder == '[Gmail]/All Mail':
-                        break
+                    logger.info(
+                    f"Parsed email: {subject[:50]}... "
+                    f"(category: {category}, metrics: {len(key_points.get('metrics', []))})"
+                    )
 
                 except Exception as e:
-                    logger.error(f"Error searching folder {folder}: {str(e)}")
+                    logger.error(f"Error processing email {email_id}: {str(e)}", exc_info=True)
                     continue
 
             return parsed_emails
