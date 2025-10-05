@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { ChevronDown, ChevronUp, TrendingUp, DollarSign, Building, BadgeDollarSign, Percent, MapPin, Building2, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NewsletterModal } from './NewsletterModal'
+import { BookmarkButton } from '@/components/bookmarks/BookmarkButton'
 import type { Newsletter, MetricType } from '@/types/newsletter'
 
 interface NewsletterCardProps {
@@ -113,20 +114,27 @@ export function NewsletterCard({ newsletter, defaultExpanded = false, onOpenModa
               {newsletter.subject}
             </h3>
           </div>
-          {hasContent && (
-            <Button
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <BookmarkButton
+              newsletterId={newsletter.id}
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0 flex-shrink-0"
-              onClick={() => setIsExpanded(!isExpanded)}
-            >
-              {isExpanded ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </Button>
-          )}
+            />
+            {hasContent && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => setIsExpanded(!isExpanded)}
+              >
+                {isExpanded ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
 
