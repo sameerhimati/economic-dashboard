@@ -16,7 +16,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.core.config import settings
 from app.core.database import init_db, close_db, init_redis, close_redis
 from app.core.validation import validate_all_config, log_startup_info
-from app.api.routes import health_router, auth_router, data_router
+from app.api.routes import health_router, auth_router, data_router, dashboard_router
 
 # Configure logging
 logging.basicConfig(
@@ -232,6 +232,7 @@ async def general_exception_handler(request: Request, exc: Exception):
 app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(data_router)
+app.include_router(dashboard_router)
 
 
 # Root endpoint
