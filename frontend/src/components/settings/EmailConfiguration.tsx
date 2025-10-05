@@ -15,18 +15,21 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { newsletterService, type EmailConfig, type EmailConfigUpdate } from '@/services/newsletterService'
+import { useAuth } from '@/hooks/useAuth'
 import { toast } from 'sonner'
-import { Loader2, CheckCircle2, XCircle, ExternalLink, Info } from 'lucide-react'
+import { Loader2, CheckCircle2, XCircle, ExternalLink, Info, Eye, EyeOff } from 'lucide-react'
 
 export function EmailConfiguration() {
+  const { user } = useAuth()
   const [config, setConfig] = useState<EmailConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const [formData, setFormData] = useState<EmailConfigUpdate>({
-    email_address: '',
+    email_address: user?.email || '',
     email_app_password: '',
     imap_server: 'imap.gmail.com',
     imap_port: 993,
@@ -35,6 +38,13 @@ export function EmailConfiguration() {
   useEffect(() => {
     loadConfig()
   }, [])
+
+  // Update email when user loads
+  useEffect(() => {
+    if (user?.email && !formData.email_address) {
+      setFormData(prev => ({ ...prev, email_address: user.email }))
+    }
+  }, [user])
 
   const loadConfig = async () => {
     try {
@@ -198,18 +208,40 @@ export function EmailConfiguration() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">App Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder={config?.is_configured ? 'Leave blank to keep current password' : 'Enter Gmail app password'}
-              value={formData.email_app_password}
-              onChange={(e) => setFormData({ ...formData, email_app_password: e.target.value })}
-            />
+            <div className="flex items-center gap-2">
+              <Label htmlFor="password">App Password</Label>
+              <a
+                href="https://myaccount.google.com/apppasswords"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+              >
+                <Info className="h-3 w-3" />
+                Get app password
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder={config?.is_configured ? 'Leave blank to keep current password' : 'Enter Gmail app password'}
+                value={formData.email_app_password}
+                onChange={(e) => setFormData({ ...formData, email_app_password: e.target.value })}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
             <p className="text-xs text-muted-foreground">
               {config?.is_configured
                 ? 'Only enter a new password if you want to update it'
-                : 'Create an app-specific password for your Gmail account'
+                : '16-character password from Google App Passwords'
               }
             </p>
           </div>
@@ -257,59 +289,6 @@ export function EmailConfiguration() {
               </Button>
             )}
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Instructions Card */}
-      <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            How to Create a Gmail App Password
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Alert>
-            <AlertDescription>
-              <div className="space-y-2">
-                <p className="font-medium">Follow these steps to create an app password:</p>
-                <ol className="list-decimal list-inside space-y-1 text-sm">
-                  <li>Go to your Google Account settings</li>
-                  <li>Select "Security" from the left menu</li>
-                  <li>Enable 2-Step Verification if not already enabled</li>
-                  <li>Go to "App passwords" section</li>
-                  <li>Create a new app password for "Mail"</li>
-                  <li>Copy the 16-character password and paste it above</li>
-                </ol>
-                <div className="pt-2">
-                  <Button variant="link" className="h-auto p-0" asChild>
-                    <a
-                      href="https://myaccount.google.com/apppasswords"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1"
-                    >
-                      Create App Password
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </Button>
-                </div>
-              </div>
-            </AlertDescription>
-          </Alert>
-
-          <Alert>
-            <AlertDescription>
-              <div className="space-y-1">
-                <p className="font-medium text-sm">Security Note:</p>
-                <p className="text-xs text-muted-foreground">
-                  Your app password is encrypted before being stored in the database.
-                  We never store your actual Gmail password. App passwords can be revoked
-                  at any time from your Google Account settings.
-                </p>
-              </div>
-            </AlertDescription>
-          </Alert>
         </CardContent>
       </Card>
 
