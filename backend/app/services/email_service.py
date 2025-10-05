@@ -523,7 +523,12 @@ class EmailService:
             EmailServiceError: If email fetch fails
         """
         if sender_filter is None:
-            sender_filter = ['@bisnow.com', '@mail.bisnow.com']
+            sender_filter = [
+                '@bisnow.com',
+                '@mail.bisnow.com',
+                '@publications.bisnow.com',
+                '@info.bisnow.com'
+            ]
 
         try:
             # Ensure connection
