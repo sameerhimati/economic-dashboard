@@ -24,8 +24,9 @@ from app.schemas.newsletter import (
     NewsletterFetchResponse,
     NewsletterStatsResponse,
 )
-from app.services.email_service import get_email_service, EmailService, EmailServiceError
+from app.services.email_service import EmailService, EmailServiceError
 from app.api.deps import get_current_active_user, get_optional_current_user
+from app.core.encryption import decrypt_email_password, EncryptionError
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -39,34 +40,37 @@ router = APIRouter(prefix="/newsletters", tags=["Newsletters"])
     response_model=NewsletterListResponse,
     status_code=status.HTTP_200_OK,
     summary="Get recent newsletters",
-    description="Retrieve recent newsletters with optional category filtering"
+    description="Retrieve recent newsletters for the authenticated user with optional category filtering"
 )
 async def get_recent_newsletters(
     limit: int = Query(10, ge=1, le=100, description="Maximum number of newsletters to return"),
     category: Optional[str] = Query(None, description="Filter by newsletter category"),
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[User] = Depends(get_optional_current_user),
+    current_user: User = Depends(get_current_active_user),  # REQUIRE authentication
 ) -> NewsletterListResponse:
     """
-    Get recent newsletters.
+    Get recent newsletters for the authenticated user.
+
+    Only returns newsletters associated with the authenticated user's account.
 
     Args:
         limit: Maximum number of newsletters to return (1-100)
         category: Optional category filter
         db: Database session
-        current_user: Optional authenticated user
+        current_user: Authenticated user (REQUIRED)
 
     Returns:
         NewsletterListResponse: List of recent newsletters
     """
     logger.info(
-        f"Fetching recent newsletters: limit={limit}, category={category}, "
-        f"user={current_user.email if current_user else 'anonymous'}"
+        f"Fetching recent newsletters for user {current_user.id}: limit={limit}, category={category}"
     )
 
     try:
-        # Build query
-        query = select(Newsletter).order_by(Newsletter.received_date.desc())
+        # Build query - filter by user_id
+        query = select(Newsletter).where(
+            Newsletter.user_id == current_user.id
+        ).order_by(Newsletter.received_date.desc())
 
         # Apply category filter if provided
         if category:
@@ -105,7 +109,7 @@ async def get_recent_newsletters(
     response_model=NewsletterSearchResponse,
     status_code=status.HTTP_200_OK,
     summary="Search newsletters",
-    description="Search newsletters by keyword in subject, content, or key points"
+    description="Search user's newsletters by keyword in subject, content, or key points"
 )
 async def search_newsletters(
     query: str = Query(..., min_length=1, description="Search query"),
@@ -115,10 +119,12 @@ async def search_newsletters(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[User] = Depends(get_optional_current_user),
+    current_user: User = Depends(get_current_active_user),  # REQUIRE authentication
 ) -> NewsletterSearchResponse:
     """
-    Search newsletters by keyword.
+    Search newsletters by keyword for the authenticated user.
+
+    Only searches newsletters associated with the authenticated user's account.
 
     Searches in:
     - Subject line
@@ -133,25 +139,27 @@ async def search_newsletters(
         page: Page number (starts at 1)
         page_size: Number of items per page (1-100)
         db: Database session
-        current_user: Optional authenticated user
+        current_user: Authenticated user (REQUIRED)
 
     Returns:
         NewsletterSearchResponse: Search results with pagination
     """
     logger.info(
-        f"Searching newsletters: query='{query}', category={category}, "
-        f"dates={start_date} to {end_date}, page={page}, "
-        f"user={current_user.email if current_user else 'anonymous'}"
+        f"Searching newsletters for user {current_user.id}: query='{query}', category={category}, "
+        f"dates={start_date} to {end_date}, page={page}"
     )
 
     try:
-        # Build base query with search conditions
+        # Build base query with search conditions and user filter
         search_pattern = f"%{query}%"
 
         # Search in subject, content_text, and convert key_points to text for searching
-        base_conditions = or_(
-            Newsletter.subject.ilike(search_pattern),
-            Newsletter.content_text.ilike(search_pattern),
+        base_conditions = and_(
+            Newsletter.user_id == current_user.id,  # Filter by user
+            or_(
+                Newsletter.subject.ilike(search_pattern),
+                Newsletter.content_text.ilike(search_pattern),
+            )
         )
 
         # Build query
@@ -210,35 +218,34 @@ async def search_newsletters(
     response_model=NewsletterFetchResponse,
     status_code=status.HTTP_200_OK,
     summary="Manually fetch newsletters",
-    description="Trigger manual email fetch from IMAP server (requires authentication)"
+    description="Trigger manual email fetch from IMAP server using user's email credentials (requires authentication)"
 )
 async def fetch_newsletters(
     days: int = Query(7, ge=1, le=30, description="Number of days to look back"),
     db: AsyncSession = Depends(get_db),
-    email_service: EmailService = Depends(get_email_service),
-    current_user: Optional[User] = Depends(get_optional_current_user),
+    current_user: User = Depends(get_current_active_user),  # REQUIRE authentication
 ) -> NewsletterFetchResponse:
     """
-    Manually trigger newsletter fetch from email.
+    Manually trigger newsletter fetch from email using user's own credentials.
 
-    Connects to IMAP server, fetches emails from Bisnow, parses content,
-    and stores in database. Requires authentication.
+    Connects to IMAP server using the authenticated user's email credentials,
+    fetches emails from Bisnow, parses content, and stores in database.
+
+    The user must have configured their email settings first via /auth/settings/email-config
 
     Args:
         days: Number of days to look back (1-30)
         db: Database session
-        email_service: Email service instance
-        current_user: Authenticated user
+        current_user: Authenticated user (REQUIRED)
 
     Returns:
         NewsletterFetchResponse: Summary of fetch operation
 
     Raises:
-        HTTPException 400: If days parameter is invalid
+        HTTPException 400: If days parameter is invalid or email not configured
         HTTPException 500: If fetch operation fails
     """
-    user_email = current_user.email if current_user else "anonymous"
-    logger.info(f"Manual newsletter fetch triggered by user: {user_email}, days={days}")
+    logger.info(f"Manual newsletter fetch triggered by user {current_user.id} ({current_user.email}), days={days}")
 
     if days < 1 or days > 30:
         raise HTTPException(
@@ -246,23 +253,53 @@ async def fetch_newsletters(
             detail="Days parameter must be between 1 and 30"
         )
 
-    try:
-        logger.info("Starting newsletter fetch operation")
+    # Check if user has configured email
+    if not current_user.email_address or not current_user.email_app_password:
+        logger.warning(f"User {current_user.id} attempted newsletter fetch without email configuration")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please configure your email settings first. Go to /auth/settings/email-config to add your email credentials."
+        )
 
-        # Fetch and store emails
+    try:
+        logger.info(f"Starting newsletter fetch operation for user {current_user.id}")
+
+        # Decrypt user's email password
+        try:
+            decrypted_password = decrypt_email_password(current_user.email_app_password)
+            if not decrypted_password:
+                raise EncryptionError("Failed to decrypt email password")
+        except EncryptionError as e:
+            logger.error(f"Failed to decrypt email password for user {current_user.id}: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to decrypt email credentials. Please re-configure your email settings."
+            )
+
+        # Create email service with user's credentials
+        email_service = EmailService(
+            email_address=current_user.email_address,
+            email_password=decrypted_password,
+            imap_server=current_user.imap_server,
+            imap_port=current_user.imap_port
+        )
+
+        # Fetch and store emails with user_id
         try:
             result = await email_service.fetch_and_store_emails(
                 db=db,
                 days=days,
-                sender_filter=['@bisnow.com', '@mail.bisnow.com']
+                sender_filter=['@bisnow.com', '@mail.bisnow.com'],
+                user_id=current_user.id  # Associate newsletters with this user
             )
         except EmailServiceError as e:
             # Handle specific email service errors with detailed logging
             logger.error(
-                f"Email service error during fetch: {e.message}",
+                f"Email service error during fetch for user {current_user.id}: {e.message}",
                 exc_info=True,
                 extra={
-                    "user": user_email,
+                    "user_id": current_user.id,
+                    "user_email": current_user.email,
                     "days": days,
                     "error_type": type(e).__name__
                 }
@@ -296,15 +333,29 @@ async def fetch_newsletters(
         timestamp = result.get("timestamp", datetime.now(timezone.utc).isoformat())
 
         logger.info(
-            f"Newsletter fetch completed successfully: {stored} stored, {skipped} skipped out of {fetched} fetched",
+            f"Newsletter fetch completed successfully for user {current_user.id}: "
+            f"{stored} stored, {skipped} skipped out of {fetched} fetched",
             extra={
-                "user": user_email,
+                "user_id": current_user.id,
+                "user_email": current_user.email,
                 "days": days,
                 "fetched": fetched,
                 "stored": stored,
                 "skipped": skipped
             }
         )
+
+        # Update last_fetch timestamp in user's newsletter preferences
+        try:
+            newsletter_prefs = current_user.newsletter_preferences or {}
+            newsletter_prefs["last_fetch"] = datetime.now(timezone.utc).isoformat()
+            current_user.newsletter_preferences = newsletter_prefs
+            await db.commit()
+            await db.refresh(current_user)
+            logger.info(f"Updated last_fetch timestamp for user {current_user.id}")
+        except Exception as e:
+            logger.warning(f"Failed to update last_fetch timestamp for user {current_user.id}: {str(e)}")
+            # Don't fail the request if we can't update the timestamp
 
         return NewsletterFetchResponse(
             status=result["status"],
@@ -320,9 +371,9 @@ async def fetch_newsletters(
     except EmailServiceError as e:
         # Catch any EmailServiceError not caught in inner try block
         logger.error(
-            f"Unexpected email service error: {e.message}",
+            f"Unexpected email service error for user {current_user.id}: {e.message}",
             exc_info=True,
-            extra={"user": user_email, "days": days}
+            extra={"user_id": current_user.id, "user_email": current_user.email, "days": days}
         )
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -332,10 +383,11 @@ async def fetch_newsletters(
         # Catch all other exceptions
         await db.rollback()
         logger.error(
-            f"Unexpected error in newsletter fetch endpoint: {str(e)}",
+            f"Unexpected error in newsletter fetch endpoint for user {current_user.id}: {str(e)}",
             exc_info=True,
             extra={
-                "user": user_email,
+                "user_id": current_user.id,
+                "user_email": current_user.email,
                 "days": days,
                 "error_type": type(e).__name__
             }
@@ -351,39 +403,42 @@ async def fetch_newsletters(
     response_model=NewsletterResponse,
     status_code=status.HTTP_200_OK,
     summary="Get newsletter by ID",
-    description="Retrieve a single newsletter with full content by UUID"
+    description="Retrieve a single newsletter with full content by UUID (must belong to authenticated user)"
 )
 async def get_newsletter_by_id(
     newsletter_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[User] = Depends(get_optional_current_user),
+    current_user: User = Depends(get_current_active_user),  # REQUIRE authentication
 ) -> NewsletterResponse:
     """
-    Get a single newsletter by ID.
+    Get a single newsletter by ID for the authenticated user.
 
     Returns full newsletter details including HTML content, text content,
-    and extracted key points.
+    and extracted key points. Only returns newsletters that belong to the
+    authenticated user.
 
     Args:
         newsletter_id: Newsletter UUID
         db: Database session
-        current_user: Optional authenticated user
+        current_user: Authenticated user (REQUIRED)
 
     Returns:
         NewsletterResponse: Full newsletter details
 
     Raises:
-        HTTPException 404: If newsletter not found
+        HTTPException 404: If newsletter not found or doesn't belong to user
     """
-    logger.info(
-        f"Fetching newsletter by ID: {newsletter_id}, "
-        f"user={current_user.email if current_user else 'anonymous'}"
-    )
+    logger.info(f"Fetching newsletter {newsletter_id} for user {current_user.id}")
 
     try:
-        # Query newsletter
+        # Query newsletter with user filter
         result = await db.execute(
-            select(Newsletter).where(Newsletter.id == newsletter_id)
+            select(Newsletter).where(
+                and_(
+                    Newsletter.id == newsletter_id,
+                    Newsletter.user_id == current_user.id  # Only user's newsletters
+                )
+            )
         )
         newsletter = result.scalar_one_or_none()
 
@@ -410,16 +465,16 @@ async def get_newsletter_by_id(
     response_model=NewsletterStatsResponse,
     status_code=status.HTTP_200_OK,
     summary="Get newsletter statistics",
-    description="Get overview statistics about stored newsletters"
+    description="Get overview statistics about user's stored newsletters"
 )
 async def get_newsletter_stats(
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[User] = Depends(get_optional_current_user),
+    current_user: User = Depends(get_current_active_user),  # REQUIRE authentication
 ) -> NewsletterStatsResponse:
     """
-    Get newsletter statistics.
+    Get newsletter statistics for the authenticated user.
 
-    Provides overview of:
+    Provides overview of user's newsletters:
     - Total newsletter count
     - Count by category
     - Count by source
@@ -428,44 +483,51 @@ async def get_newsletter_stats(
 
     Args:
         db: Database session
-        current_user: Optional authenticated user
+        current_user: Authenticated user (REQUIRED)
 
     Returns:
         NewsletterStatsResponse: Newsletter statistics
     """
-    logger.info(
-        f"Fetching newsletter stats, "
-        f"user={current_user.email if current_user else 'anonymous'}"
-    )
+    logger.info(f"Fetching newsletter stats for user {current_user.id}")
 
     try:
-        # Get total count
-        total_result = await db.execute(select(func.count(Newsletter.id)))
+        # Get total count for user
+        total_result = await db.execute(
+            select(func.count(Newsletter.id)).where(
+                Newsletter.user_id == current_user.id
+            )
+        )
         total_newsletters = total_result.scalar() or 0
 
-        # Get count by category
+        # Get count by category for user
         category_result = await db.execute(
             select(
                 Newsletter.category,
                 func.count(Newsletter.id).label('count')
+            ).where(
+                Newsletter.user_id == current_user.id
             ).group_by(Newsletter.category)
         )
         by_category = {row[0]: row[1] for row in category_result.all()}
 
-        # Get count by source
+        # Get count by source for user
         source_result = await db.execute(
             select(
                 Newsletter.source,
                 func.count(Newsletter.id).label('count')
+            ).where(
+                Newsletter.user_id == current_user.id
             ).group_by(Newsletter.source)
         )
         by_source = {row[0]: row[1] for row in source_result.all()}
 
-        # Get date range
+        # Get date range for user
         date_range_result = await db.execute(
             select(
                 func.min(Newsletter.received_date).label('earliest'),
                 func.max(Newsletter.received_date).label('latest')
+            ).where(
+                Newsletter.user_id == current_user.id
             )
         )
         date_range_row = date_range_result.one_or_none()
@@ -477,11 +539,14 @@ async def get_newsletter_stats(
                 "latest": date_range_row[1]
             }
 
-        # Get recent count (last 7 days)
+        # Get recent count (last 7 days) for user
         seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
         recent_result = await db.execute(
             select(func.count(Newsletter.id)).where(
-                Newsletter.received_date >= seven_days_ago
+                and_(
+                    Newsletter.user_id == current_user.id,
+                    Newsletter.received_date >= seven_days_ago
+                )
             )
         )
         recent_count = recent_result.scalar() or 0
@@ -506,24 +571,31 @@ async def get_newsletter_stats(
     "/categories/list",
     response_model=list,
     status_code=status.HTTP_200_OK,
-    summary="List all newsletter categories",
-    description="Get list of all unique newsletter categories"
+    summary="List newsletter categories",
+    description="Get list of unique newsletter categories for the authenticated user"
 )
 async def list_categories(
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),  # REQUIRE authentication
 ) -> list:
     """
-    List all unique newsletter categories.
+    List unique newsletter categories for the authenticated user.
+
+    Only returns categories from newsletters that belong to the user.
 
     Args:
         db: Database session
+        current_user: Authenticated user (REQUIRED)
 
     Returns:
         list: List of category names
     """
+    logger.info(f"Fetching categories for user {current_user.id}")
+
     try:
         result = await db.execute(
             select(Newsletter.category)
+            .where(Newsletter.user_id == current_user.id)
             .distinct()
             .order_by(Newsletter.category)
         )

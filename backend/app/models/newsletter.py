@@ -4,14 +4,17 @@ Newsletter database model for storing email newsletter data.
 Stores parsed email newsletters from Bisnow and other real estate sources.
 """
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 import uuid
 
-from sqlalchemy import String, Text, DateTime, JSON, Index, UniqueConstraint
+from sqlalchemy import String, Text, DateTime, JSON, Index, UniqueConstraint, Integer, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from app.models.user import User
 
 
 class Newsletter(Base, TimestampMixin):
@@ -23,6 +26,8 @@ class Newsletter(Base, TimestampMixin):
 
     Attributes:
         id: Unique newsletter identifier (UUID)
+        user_id: ID of user who owns this newsletter
+        user: User relationship
         source: Email sender/source (e.g., 'alerts@mail.bisnow.com')
         category: Newsletter type (e.g., 'Houston', 'Austin', 'National Deal Brief')
         subject: Email subject line
@@ -44,6 +49,21 @@ class Newsletter(Base, TimestampMixin):
         default=uuid.uuid4,
         index=True,
         doc="Unique newsletter identifier"
+    )
+
+    # User foreign key
+    user_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+        doc="ID of user who owns this newsletter"
+    )
+
+    # User relationship
+    user: Mapped["User"] = relationship(
+        "User",
+        back_populates="newsletters"
     )
 
     # Email source/sender
@@ -106,13 +126,15 @@ class Newsletter(Base, TimestampMixin):
         doc="When the email was parsed and stored"
     )
 
-    # Composite unique constraint: one entry per subject + received_date
-    # This prevents duplicate newsletter entries
+    # Composite unique constraint: one entry per user + subject + received_date
+    # This prevents duplicate newsletter entries for each user
     __table_args__ = (
-        UniqueConstraint('subject', 'received_date', name='uix_newsletter_subject_date'),
+        UniqueConstraint('user_id', 'subject', 'received_date', name='uix_newsletter_user_subject_date'),
+        Index('ix_newsletter_user_id', 'user_id'),  # For user-based queries
+        Index('ix_newsletter_user_category_date', 'user_id', 'category', 'received_date'),  # For user category queries
+        Index('ix_newsletter_user_received', 'user_id', 'received_date'),  # For user date queries
         Index('ix_newsletter_category_date', 'category', 'received_date'),  # For category-based queries
         Index('ix_newsletter_source_date', 'source', 'received_date'),  # For source-based queries
-        Index('ix_newsletter_received', 'received_date'),  # For date-based queries
     )
 
     def __repr__(self) -> str:

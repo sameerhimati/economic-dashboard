@@ -4,9 +4,24 @@ Pydantic schemas for user-related requests and responses.
 Defines data validation and serialization for user endpoints.
 """
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
+
+
+# Bisnow newsletter categories (available options)
+BISNOW_CATEGORIES = [
+    "Houston Morning Brief",
+    "Austin/San Antonio Morning Brief",
+    "National Deal Brief",
+    "Capital Markets/Finance",
+    "Multifamily",
+    "Retail",
+    "Investment",
+    "Student Housing Brief",
+    "The Texas Tea",
+    "What Tenants Want",
+]
 
 
 # Base schemas
@@ -182,6 +197,124 @@ class LoginResponse(BaseModel):
                 "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
                 "token_type": "bearer",
                 "expires_in": 1800
+            }
+        }
+    )
+
+
+# Newsletter preferences schemas
+class NewsletterPreferences(BaseModel):
+    """Schema for newsletter preferences."""
+
+    bisnow_categories: List[str] = Field(
+        default_factory=list,
+        description="List of Bisnow newsletter categories the user is subscribed to"
+    )
+    fetch_enabled: bool = Field(
+        default=False,
+        description="Whether automatic newsletter fetching is enabled"
+    )
+    last_fetch: Optional[datetime] = Field(
+        None,
+        description="Timestamp of last newsletter fetch"
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "bisnow_categories": ["Houston Morning Brief", "National Deal Brief"],
+                "fetch_enabled": True,
+                "last_fetch": "2024-01-15T10:30:00Z"
+            }
+        }
+    )
+
+
+class UserEmailConfigUpdate(BaseModel):
+    """Schema for updating user email configuration."""
+
+    email_address: Optional[str] = Field(
+        None,
+        description="Email address for newsletter fetching (e.g., Gmail address)"
+    )
+    email_app_password: Optional[str] = Field(
+        None,
+        description="Email app password for IMAP access (will be encrypted)"
+    )
+    imap_server: str = Field(
+        default="imap.gmail.com",
+        description="IMAP server address"
+    )
+    imap_port: int = Field(
+        default=993,
+        ge=1,
+        le=65535,
+        description="IMAP server port"
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "email_address": "user@gmail.com",
+                "email_app_password": "app-specific-password",
+                "imap_server": "imap.gmail.com",
+                "imap_port": 993
+            }
+        }
+    )
+
+
+class UserEmailConfigResponse(BaseModel):
+    """Schema for email configuration response (password masked)."""
+
+    email_address: Optional[str] = Field(None, description="Email address")
+    imap_server: str = Field(..., description="IMAP server")
+    imap_port: int = Field(..., description="IMAP port")
+    is_configured: bool = Field(..., description="Whether email is configured")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "email_address": "user@gmail.com",
+                "imap_server": "imap.gmail.com",
+                "imap_port": 993,
+                "is_configured": True
+            }
+        }
+    )
+
+
+class UserNewsletterPreferencesUpdate(BaseModel):
+    """Schema for updating newsletter preferences."""
+
+    bisnow_categories: List[str] = Field(
+        ...,
+        description="List of Bisnow newsletter categories to subscribe to"
+    )
+    fetch_enabled: bool = Field(
+        default=True,
+        description="Enable automatic newsletter fetching"
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "bisnow_categories": ["Houston Morning Brief", "National Deal Brief"],
+                "fetch_enabled": True
+            }
+        }
+    )
+
+
+class NewsletterCategoriesResponse(BaseModel):
+    """Schema for available newsletter categories response."""
+
+    categories: List[str] = Field(..., description="List of available newsletter categories")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "categories": BISNOW_CATEGORIES
             }
         }
     )

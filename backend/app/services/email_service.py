@@ -88,19 +88,37 @@ class EmailService:
     - Comprehensive error handling and logging
     """
 
-    def __init__(self):
-        """Initialize email service with configuration."""
-        self.email_address = settings.EMAIL_ADDRESS
-        self.email_password = settings.EMAIL_APP_PASSWORD
-        self.imap_server = settings.IMAP_SERVER
-        self.imap_port = settings.IMAP_PORT
+    def __init__(
+        self,
+        email_address: Optional[str] = None,
+        email_password: Optional[str] = None,
+        imap_server: Optional[str] = None,
+        imap_port: Optional[int] = None
+    ):
+        """
+        Initialize email service with configuration.
+
+        Args:
+            email_address: Email address for IMAP connection (falls back to env var)
+            email_password: Email password for IMAP (falls back to env var)
+            imap_server: IMAP server address (falls back to env var)
+            imap_port: IMAP port (falls back to env var)
+
+        If user-specific credentials are provided, they take precedence over
+        environment variables. This enables user-specific email fetching.
+        """
+        # Use provided credentials or fall back to environment variables
+        self.email_address = email_address or settings.EMAIL_ADDRESS
+        self.email_password = email_password or settings.EMAIL_APP_PASSWORD
+        self.imap_server = imap_server or settings.IMAP_SERVER
+        self.imap_port = imap_port or settings.IMAP_PORT
         self.connection: Optional[imaplib.IMAP4_SSL] = None
 
         # Validate required configuration
         if not self.email_address:
-            logger.warning("EMAIL_ADDRESS not configured")
+            logger.warning("EMAIL_ADDRESS not configured (no user credentials or env vars)")
         if not self.email_password:
-            logger.warning("EMAIL_APP_PASSWORD not configured")
+            logger.warning("EMAIL_APP_PASSWORD not configured (no user credentials or env vars)")
         if not self.imap_server:
             logger.warning("IMAP_SERVER not configured")
         if not self.imap_port:
@@ -625,7 +643,8 @@ class EmailService:
         self,
         db: AsyncSession,
         days: int = 7,
-        sender_filter: Optional[List[str]] = None
+        sender_filter: Optional[List[str]] = None,
+        user_id: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Fetch emails and store them in the database.
@@ -637,13 +656,23 @@ class EmailService:
             db: Database session
             days: Number of days to look back
             sender_filter: List of sender domains to filter
+            user_id: ID of user who owns these newsletters (required for user-specific fetching)
 
         Returns:
             Dict: Summary of fetch operation
+
+        Raises:
+            EmailServiceError: If user_id is not provided or email fetch fails
         """
+        # Validate user_id is provided
+        if user_id is None:
+            raise EmailServiceError(
+                "user_id is required for newsletter fetching. "
+                "Newsletters must be associated with a specific user."
+            )
         try:
             # Run synchronous fetch in thread pool
-            logger.info(f"Fetching emails from IMAP (last {days} days)")
+            logger.info(f"Fetching emails from IMAP for user {user_id} (last {days} days)")
             loop = asyncio.get_event_loop()
             fetch_func = partial(self.fetch_emails, days=days, sender_filter=sender_filter)
 
@@ -678,10 +707,11 @@ class EmailService:
 
             for email_data in emails:
                 try:
-                    # Check if email already exists
+                    # Check if email already exists for this user
                     result = await db.execute(
                         select(Newsletter).where(
                             and_(
+                                Newsletter.user_id == user_id,
                                 Newsletter.subject == email_data["subject"],
                                 Newsletter.received_date == email_data["received_date"]
                             )
@@ -690,12 +720,13 @@ class EmailService:
                     existing = result.scalar_one_or_none()
 
                     if existing:
-                        logger.debug(f"Newsletter already exists: {email_data['subject'][:50]}...")
+                        logger.debug(f"Newsletter already exists for user {user_id}: {email_data['subject'][:50]}...")
                         skipped_count += 1
                         continue
 
-                    # Create newsletter record
+                    # Create newsletter record with user_id
                     newsletter = Newsletter(
+                        user_id=user_id,
                         source=email_data["source"],
                         category=email_data["category"],
                         subject=email_data["subject"],
@@ -734,7 +765,7 @@ class EmailService:
                 )
 
             logger.info(
-                f"Newsletter fetch complete: {stored_count} stored, "
+                f"Newsletter fetch complete for user {user_id}: {stored_count} stored, "
                 f"{skipped_count} skipped (duplicates)"
             )
 

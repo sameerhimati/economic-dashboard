@@ -4,12 +4,15 @@ User database model.
 Defines the User table structure for authentication and user management.
 """
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
-from sqlalchemy import Boolean, String, Integer
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Boolean, String, Integer, JSON, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from app.models.newsletter import Newsletter
 
 
 class User(Base, TimestampMixin):
@@ -23,6 +26,19 @@ class User(Base, TimestampMixin):
         is_active: Whether the user account is active
         is_superuser: Whether the user has admin privileges
         full_name: User's full name (optional)
+
+        # Email configuration for newsletter fetching
+        email_address: User's email address for newsletter fetching (encrypted)
+        email_app_password: User's email app password (encrypted)
+        imap_server: IMAP server for email fetching
+        imap_port: IMAP port for email fetching
+
+        # Newsletter preferences
+        newsletter_preferences: JSON object with newsletter settings
+
+        # Relationships
+        newsletters: User's newsletters
+
         created_at: When the user was created (from TimestampMixin)
         updated_at: When the user was last updated (from TimestampMixin)
     """
@@ -74,6 +90,50 @@ class User(Base, TimestampMixin):
         String(255),
         nullable=True,
         doc="User's full name"
+    )
+
+    # Email configuration for newsletter fetching (encrypted)
+    email_address: Mapped[Optional[str]] = mapped_column(
+        String(500),
+        nullable=True,
+        doc="User's email address for newsletter fetching"
+    )
+
+    email_app_password: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+        doc="User's encrypted email app password for IMAP access"
+    )
+
+    imap_server: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        default="imap.gmail.com",
+        server_default="imap.gmail.com",
+        doc="IMAP server for email fetching"
+    )
+
+    imap_port: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=993,
+        server_default="993",
+        doc="IMAP port for email fetching"
+    )
+
+    # Newsletter preferences (JSON)
+    newsletter_preferences: Mapped[Optional[dict]] = mapped_column(
+        JSON,
+        nullable=True,
+        doc="Newsletter preferences including categories, fetch settings, and last fetch timestamp"
+    )
+
+    # Relationships
+    newsletters: Mapped[list["Newsletter"]] = relationship(
+        "Newsletter",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        lazy="selectin"
     )
 
     def __repr__(self) -> str:
