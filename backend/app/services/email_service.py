@@ -543,8 +543,17 @@ class EmailService:
 
             parsed_emails = []
 
-            # Search in multiple folders (INBOX and Gmail All Mail to get Promotions/Social/etc)
-            folders_to_search = ['INBOX', '[Gmail]/All Mail']
+            # List available folders for debugging
+            try:
+                status, folder_list = self.connection.list()
+                if status == 'OK':
+                    logger.info(f"Available folders: {[f.decode() if isinstance(f, bytes) else f for f in folder_list[:10]]}")
+            except Exception as e:
+                logger.warning(f"Could not list folders: {e}")
+
+            # Search in multiple folders (INBOX is guaranteed to work)
+            # Try common Gmail folder variations for All Mail
+            folders_to_search = ['INBOX', '"[Gmail]/All Mail"', '[Gmail]/All Mail', 'All Mail', '"All Mail"']
 
             for folder in folders_to_search:
                 try:
