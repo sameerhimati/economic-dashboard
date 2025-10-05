@@ -113,11 +113,11 @@ export function Header() {
                 <div className="flex items-center gap-3">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
-                      {getInitials(user?.username, user?.email)}
+                      {getInitials(user?.full_name, user?.email)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="hidden sm:block">
-                    <p className="text-sm font-medium leading-none">{user?.username || 'User'}</p>
+                    <p className="text-sm font-medium leading-none">{user?.full_name || user?.email || 'User'}</p>
                     <p className="text-xs text-muted-foreground mt-1">{user?.email || ''}</p>
                   </div>
                 </div>

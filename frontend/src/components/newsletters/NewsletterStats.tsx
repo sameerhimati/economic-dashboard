@@ -217,8 +217,8 @@ export function NewsletterStats() {
             <div className="mt-6 space-y-2">
               <h4 className="text-sm font-semibold text-muted-foreground">All Categories</h4>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {Object.entries(stats.categories)
-                  .sort(([, a], [, b]) => b - a)
+                {Object.entries(stats.by_category)
+                  .sort(([, a], [, b]) => (b as number) - (a as number))
                   .map(([category, count], index) => (
                     <div
                       key={category}
@@ -234,7 +234,7 @@ export function NewsletterStats() {
                         {category}
                       </span>
                       <span className="text-muted-foreground font-medium">
-                        {count}
+                        {count as number}
                       </span>
                     </div>
                   ))}
