@@ -8,6 +8,7 @@ import { TodayFeed } from '@/components/dashboard/TodayFeed'
 import { BreakingNews } from '@/components/dashboard/BreakingNews'
 import { WeeklySummary } from '@/components/dashboard/WeeklySummary'
 import { MetricCard } from '@/components/dashboard/MetricCard'
+import { RealEstateHighlights, LatestDealsCard } from '@/components/newsletters'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { ProgressBar } from '@/components/ui/progress-bar'
@@ -174,6 +175,12 @@ export function Dashboard() {
               />
             </div>
           )}
+
+          {/* Newsletter Integration Section */}
+          <div className="grid gap-6 lg:grid-cols-2 border-t pt-12">
+            <RealEstateHighlights limit={5} showViewAll={false} />
+            <LatestDealsCard />
+          </div>
 
           {showFavorites && bookmarkedMetrics.length > 0 && (
             <div id="favorites" className="animate-fade-in border-t pt-12">

@@ -78,3 +78,6 @@ export interface ApiError {
   detail: string
   status?: number
 }
+
+// Re-export newsletter types
+export * from './newsletter'

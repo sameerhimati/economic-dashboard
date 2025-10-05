@@ -25,6 +25,21 @@ from app.schemas.data import (
     FREDSeriesResponse,
     ErrorResponse,
 )
+from app.schemas.newsletter import (
+    NewsletterBase,
+    NewsletterCreate,
+    NewsletterUpdate,
+    NewsletterResponse,
+    NewsletterSummary,
+    NewsletterListResponse,
+    NewsletterSearchRequest,
+    NewsletterSearchResponse,
+    NewsletterFetchRequest,
+    NewsletterFetchResponse,
+    MetricExtract,
+    KeyPointsResponse,
+    NewsletterStatsResponse,
+)
 
 __all__ = [
     # User schemas
@@ -47,4 +62,18 @@ __all__ = [
     "FREDSeriesRequest",
     "FREDSeriesResponse",
     "ErrorResponse",
+    # Newsletter schemas
+    "NewsletterBase",
+    "NewsletterCreate",
+    "NewsletterUpdate",
+    "NewsletterResponse",
+    "NewsletterSummary",
+    "NewsletterListResponse",
+    "NewsletterSearchRequest",
+    "NewsletterSearchResponse",
+    "NewsletterFetchRequest",
+    "NewsletterFetchResponse",
+    "MetricExtract",
+    "KeyPointsResponse",
+    "NewsletterStatsResponse",
 ]
