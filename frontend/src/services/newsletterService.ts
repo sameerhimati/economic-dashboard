@@ -16,7 +16,7 @@ class NewsletterService {
         params.category = category
       }
 
-      const response = await apiClient.get<Newsletter[]>('/api/newsletters/recent', { params })
+      const response = await apiClient.get<Newsletter[]>('/newsletters/recent', { params })
       return response.data
     } catch (error) {
       console.error('Error fetching recent newsletters:', error)
@@ -41,7 +41,7 @@ class NewsletterService {
         params.offset = filters.offset
       }
 
-      const response = await apiClient.get<Newsletter[]>('/api/newsletters/search', { params })
+      const response = await apiClient.get<Newsletter[]>('/newsletters/search', { params })
       return response.data
     } catch (error) {
       console.error('Error searching newsletters:', error)
@@ -54,7 +54,7 @@ class NewsletterService {
    */
   async getById(id: string): Promise<Newsletter> {
     try {
-      const response = await apiClient.get<Newsletter>(`/api/newsletters/${id}`)
+      const response = await apiClient.get<Newsletter>(`/newsletters/${id}`)
       return response.data
     } catch (error) {
       console.error(`Error fetching newsletter ${id}:`, error)
@@ -67,7 +67,7 @@ class NewsletterService {
    */
   async getStats(): Promise<NewsletterStats> {
     try {
-      const response = await apiClient.get<NewsletterStats>('/api/newsletters/stats/overview')
+      const response = await apiClient.get<NewsletterStats>('/newsletters/stats/overview')
       return response.data
     } catch (error) {
       console.error('Error fetching newsletter stats:', error)
@@ -80,7 +80,7 @@ class NewsletterService {
    */
   async getCategories(): Promise<string[]> {
     try {
-      const response = await apiClient.get<string[]>('/api/newsletters/categories/list')
+      const response = await apiClient.get<string[]>('/newsletters/categories/list')
       return response.data
     } catch (error) {
       console.error('Error fetching categories:', error)
