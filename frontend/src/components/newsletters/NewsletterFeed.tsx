@@ -215,14 +215,14 @@ export function NewsletterFeed({
       {!isLoading && !error && newsletters.length === 0 && (
         <Card>
           <CardContent className="pt-6">
-            <div className="flex flex-col items-center justify-center space-y-4 py-12">
+            <div className="flex flex-col items-center justify-center space-y-6 py-12 max-w-2xl mx-auto">
               <Inbox className="h-16 w-16 text-muted-foreground/50" />
-              <div className="text-center space-y-2 max-w-md">
+              <div className="text-center space-y-2">
                 <p className="text-lg font-medium">No newsletters found</p>
                 <p className="text-sm text-muted-foreground">
                   {debouncedSearch
                     ? 'Try adjusting your search query or filters'
-                    : 'To get started, configure your email settings to fetch newsletters from your Gmail account.'
+                    : 'Connect your Gmail to import Bisnow real estate newsletters. More sources coming soon!'
                   }
                 </p>
               </div>
@@ -238,13 +238,39 @@ export function NewsletterFeed({
                   Clear Filters
                 </Button>
               ) : (
-                <div className="flex flex-col gap-2 text-sm text-muted-foreground text-center">
-                  <p>Steps to set up:</p>
-                  <ol className="list-decimal list-inside space-y-1 text-left">
-                    <li>Go to Settings → Email Configuration</li>
-                    <li>Add your Gmail address and app password</li>
-                    <li>Click "Fetch Newsletters" to import your Bisnow emails</li>
-                  </ol>
+                <div className="w-full space-y-6">
+                  <div className="bg-muted/50 rounded-lg p-6 space-y-4 text-left">
+                    <h3 className="font-semibold text-sm">📧 Setup Instructions</h3>
+                    <ol className="list-decimal list-inside space-y-3 text-sm text-muted-foreground">
+                      <li className="leading-relaxed">
+                        <span className="font-medium text-foreground">Create Gmail App Password</span>
+                        <ul className="list-disc list-inside ml-6 mt-1 space-y-1">
+                          <li>Go to <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google App Passwords</a></li>
+                          <li>Select "Mail" and "Other (Custom name)"</li>
+                          <li>Copy the 16-character password</li>
+                        </ul>
+                      </li>
+                      <li className="leading-relaxed">
+                        <span className="font-medium text-foreground">Configure Email Settings</span>
+                        <ul className="list-disc list-inside ml-6 mt-1 space-y-1">
+                          <li>Go to Settings → Email Configuration (coming soon)</li>
+                          <li>Enter your Gmail address and app password</li>
+                          <li>Save configuration</li>
+                        </ul>
+                      </li>
+                      <li className="leading-relaxed">
+                        <span className="font-medium text-foreground">Import Newsletters</span>
+                        <ul className="list-disc list-inside ml-6 mt-1">
+                          <li>Click "Fetch Newsletters" to import from your inbox</li>
+                        </ul>
+                      </li>
+                    </ol>
+                    <div className="pt-2 text-xs text-muted-foreground border-t space-y-1">
+                      <p>📰 <strong>Note:</strong> You must be subscribed to Bisnow newsletters at your Gmail address. <a href="https://www.bisnow.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Subscribe at Bisnow.com</a></p>
+                      <p>✨ <strong>Currently supported:</strong> Bisnow (Houston, Austin, National Deal Brief, and more)</p>
+                      <p>🚀 <strong>Coming soon:</strong> CoStar, Commercial Observer, and custom RSS feeds</p>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

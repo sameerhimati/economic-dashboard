@@ -2,7 +2,7 @@ import { Layout } from '@/components/layout/Layout'
 import { PageTransition } from '@/components/ui/page-transition'
 import { NewsletterFeed, NewsletterStats } from '@/components/newsletters'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Building2, BarChart3, Inbox } from 'lucide-react'
+import { BookOpen, BarChart3, Inbox } from 'lucide-react'
 
 export function Newsletters() {
   return (
@@ -12,11 +12,11 @@ export function Newsletters() {
           {/* Header */}
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <Building2 className="h-8 w-8 text-primary" />
-              <h1 className="text-4xl font-bold tracking-tight">Real Estate Newsletters</h1>
+              <BookOpen className="h-8 w-8 text-primary" />
+              <h1 className="text-4xl font-bold tracking-tight">Newsstand</h1>
             </div>
             <p className="text-muted-foreground">
-              Stay updated with the latest Bisnow real estate news, deals, and market insights
+              Your curated real estate newsletter feed • Currently featuring Bisnow, with more sources coming soon
             </p>
           </div>
 
