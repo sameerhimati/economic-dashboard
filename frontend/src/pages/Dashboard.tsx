@@ -41,6 +41,15 @@ export function Dashboard() {
     })
   }, [allMetrics, bookmarkedIds])
 
+  // Filter non-bookmarked metrics for Additional Metrics section
+  const nonBookmarkedMetrics = useMemo(() => {
+    if (!metrics?.metrics) return []
+    return metrics.metrics.filter((metric) => {
+      const metricId = metric?.id || metric?.name || ''
+      return !bookmarkedIds.has(metricId)
+    })
+  }, [metrics, bookmarkedIds])
+
   useEffect(() => {
     fetchAll()
     setLastRefresh(new Date())
@@ -133,7 +142,7 @@ export function Dashboard() {
                 ))}
               </div>
             </div>
-          ) : metrics?.metrics && Array.isArray(metrics.metrics) && metrics.metrics.length > 0 ? (
+          ) : nonBookmarkedMetrics.length > 0 ? (
             <div className="space-y-4 animate-fade-in border-t pt-12">
               <div>
                 <h2 className="text-3xl font-bold tracking-tight">Additional Metrics</h2>
@@ -142,7 +151,7 @@ export function Dashboard() {
                 </p>
               </div>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {metrics.metrics.map((metric, index) => (
+                {nonBookmarkedMetrics.map((metric, index) => (
                   <div
                     key={metric?.id || `metric-${index}`}
                     className="animate-slide-up"
