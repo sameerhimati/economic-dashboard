@@ -16,7 +16,11 @@ export const authService = {
   },
 
   async register(credentials: RegisterCredentials): Promise<User> {
-    const response = await apiClient.post<User>('/auth/register', credentials)
+    const response = await apiClient.post<User>('/auth/register', {
+      email: credentials.email,
+      password: credentials.password,
+      full_name: credentials.username, // Backend uses full_name, not username
+    })
 
     if (!response?.data) {
       throw new Error('Invalid response from server')
