@@ -6,16 +6,21 @@ import { TrendingUp, TrendingDown, Minus, Star } from 'lucide-react'
 import type { EconomicIndicator } from '@/types'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
+import { useBookmarks } from '@/hooks/useBookmarks'
 
 interface MetricCardProps {
   metric: EconomicIndicator
 }
 
 export function MetricCard({ metric }: MetricCardProps) {
+  const { isBookmarked, toggleBookmark } = useBookmarks()
+
   if (!metric) {
     return null
   }
 
+  const metricId = metric?.id || metric?.name || ''
+  const bookmarked = isBookmarked(metricId)
   const isPositive = (metric?.change ?? 0) > 0
   const isNeutral = (metric?.change ?? 0) === 0
   const color = isPositive ? '#10b981' : isNeutral ? '#6b7280' : '#ef4444'
@@ -39,14 +44,17 @@ export function MetricCard({ metric }: MetricCardProps) {
       <Button
         variant="ghost"
         size="icon"
-        className="absolute top-2 right-2 h-6 w-6 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+        className={cn(
+          "absolute top-2 right-2 h-6 w-6 z-10 transition-all",
+          bookmarked ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+          bookmarked && "text-yellow-500 hover:text-yellow-600"
+        )}
         onClick={(e) => {
           e.stopPropagation()
-          // TODO: Implement bookmark functionality
-          console.log('Bookmarked:', metric.name)
+          toggleBookmark(metricId)
         }}
       >
-        <Star className="h-3.5 w-3.5" />
+        <Star className={cn("h-3.5 w-3.5 transition-all", bookmarked && "fill-current")} />
       </Button>
 
       {/* Subtle accent bar on left */}

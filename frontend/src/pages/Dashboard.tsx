@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useData } from '@/hooks/useData'
+import { useBookmarks } from '@/hooks/useBookmarks'
 import { Layout } from '@/components/layout/Layout'
 import { TodayFeed } from '@/components/dashboard/TodayFeed'
 import { BreakingNews } from '@/components/dashboard/BreakingNews'
@@ -7,7 +8,8 @@ import { WeeklySummary } from '@/components/dashboard/WeeklySummary'
 import { MetricCard } from '@/components/dashboard/MetricCard'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { RefreshCw, Clock } from 'lucide-react'
+import { RefreshCw, Clock, Star } from 'lucide-react'
+import type { EconomicIndicator } from '@/types'
 
 export function Dashboard() {
   const {
@@ -20,12 +22,41 @@ export function Dashboard() {
     fetchAll,
   } = useData()
 
+  const { bookmarkedIds } = useBookmarks()
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
+
+  // Combine all metrics from all sources
+  const allMetrics = useMemo(() => {
+    const combined: EconomicIndicator[] = []
+    if (todayFeed?.indicators) combined.push(...todayFeed.indicators)
+    if (metrics?.metrics) combined.push(...metrics.metrics)
+    return combined
+  }, [todayFeed, metrics])
+
+  // Filter bookmarked metrics
+  const bookmarkedMetrics = useMemo(() => {
+    return allMetrics.filter((metric) => {
+      const metricId = metric?.id || metric?.name || ''
+      return bookmarkedIds.has(metricId)
+    })
+  }, [allMetrics, bookmarkedIds])
 
   useEffect(() => {
     fetchAll()
     setLastRefresh(new Date())
   }, [])
+
+  // Auto-refresh every 5 minutes
+  useEffect(() => {
+    const REFRESH_INTERVAL = 5 * 60 * 1000 // 5 minutes in milliseconds
+
+    const intervalId = setInterval(() => {
+      fetchAll()
+      setLastRefresh(new Date())
+    }, REFRESH_INTERVAL)
+
+    return () => clearInterval(intervalId)
+  }, [fetchAll])
 
   const handleRefresh = () => {
     fetchAll()
@@ -66,6 +97,31 @@ export function Dashboard() {
           error={error}
           onRefresh={handleRefresh}
         />
+
+        {bookmarkedMetrics.length > 0 && (
+          <div id="favorites" className="animate-fade-in border-t pt-12">
+            <div className="flex items-center gap-3 mb-4">
+              <Star className="h-6 w-6 text-yellow-500 fill-yellow-500" />
+              <div>
+                <h2 className="text-3xl font-bold tracking-tight">Favorites</h2>
+                <p className="text-sm text-muted-foreground">
+                  Your bookmarked metrics for quick access
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {bookmarkedMetrics.map((metric, index) => (
+                <div
+                  key={metric?.id || metric?.name || `favorite-${index}`}
+                  className="animate-slide-up"
+                  style={{ animationDelay: `${index * 30}ms` }}
+                >
+                  <MetricCard metric={metric} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div id="metrics">
           {isLoading && !metrics ? (
