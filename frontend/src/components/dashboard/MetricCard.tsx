@@ -1,9 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { SparkLine } from '@/components/charts/SparkLine'
 import { formatNumber, formatPercent } from '@/lib/utils'
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, Star } from 'lucide-react'
 import type { EconomicIndicator } from '@/types'
 import { cn } from '@/lib/utils'
+import { motion } from 'framer-motion'
 
 interface MetricCardProps {
   metric: EconomicIndicator
@@ -22,6 +24,8 @@ export function MetricCard({ metric }: MetricCardProps) {
     <Card
       className={cn(
         "group relative overflow-hidden transition-all duration-200",
+        "bg-gradient-to-br from-card to-card/80",
+        "hover:from-card hover:to-accent/5",
         "hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10",
         "cursor-pointer transform hover:scale-[1.01]",
         "active:scale-[0.99]"
@@ -31,6 +35,20 @@ export function MetricCard({ metric }: MetricCardProps) {
         console.log('Clicked metric:', metric.name)
       }}
     >
+      {/* Bookmark/Save button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-2 right-2 h-6 w-6 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={(e) => {
+          e.stopPropagation()
+          // TODO: Implement bookmark functionality
+          console.log('Bookmarked:', metric.name)
+        }}
+      >
+        <Star className="h-3.5 w-3.5" />
+      </Button>
+
       {/* Subtle accent bar on left */}
       <div
         className={cn(
@@ -50,9 +68,15 @@ export function MetricCard({ metric }: MetricCardProps) {
       <CardContent className="space-y-4 pl-5">
         <div className="flex items-end justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <div className="text-3xl font-bold tracking-tight metric-value mb-1">
+            <motion.div
+              className="text-3xl font-bold tracking-tight metric-value mb-1"
+              initial={{ scale: 1 }}
+              animate={{ scale: 1 }}
+              key={metric?.value}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            >
               {formatNumber(metric?.value ?? 0)}
-            </div>
+            </motion.div>
             <div
               className={cn(
                 'inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-semibold transition-colors',

@@ -1,10 +1,38 @@
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { TrendingUp, LogOut } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { TrendingUp, LogOut, Sun, Moon, Monitor } from 'lucide-react'
+import { useEffect, useState } from 'react'
+
+type Theme = 'light' | 'dark' | 'system'
 
 export function Header() {
   const { user, logout } = useAuth()
+  const [theme, setTheme] = useState<Theme>(() => {
+    const savedTheme = localStorage.getItem('theme') as Theme
+    return savedTheme || 'dark'
+  })
+
+  useEffect(() => {
+    const root = document.documentElement
+
+    if (theme === 'system') {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+      root.classList.remove('light', 'dark')
+      root.classList.add(systemTheme)
+    } else {
+      root.classList.remove('light', 'dark')
+      root.classList.add(theme)
+    }
+
+    localStorage.setItem('theme', theme)
+  }, [theme])
 
   const getInitials = (name?: string, email?: string) => {
     if (!name && !email) return '??'
@@ -29,6 +57,34 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                {theme === 'light' ? (
+                  <Sun className="h-4 w-4" />
+                ) : theme === 'dark' ? (
+                  <Moon className="h-4 w-4" />
+                ) : (
+                  <Monitor className="h-4 w-4" />
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setTheme('light')}>
+                <Sun className="mr-2 h-4 w-4" />
+                Light
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setTheme('dark')}>
+                <Moon className="mr-2 h-4 w-4" />
+                Dark
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setTheme('system')}>
+                <Monitor className="mr-2 h-4 w-4" />
+                System
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           {user && (
             <>
               <div className="flex items-center gap-3">
