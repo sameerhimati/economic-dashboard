@@ -56,15 +56,6 @@ export function Bookmarks() {
     setSelectedListId(listId)
   }
 
-  const handleNewsletterRemoved = () => {
-    // Refresh the current list
-    if (selectedListId) {
-      loadNewsletters(selectedListId)
-    }
-    // Also refresh the list manager to update counts
-    setListsKey(prev => prev + 1)
-  }
-
   return (
     <Layout>
       <PageTransition>

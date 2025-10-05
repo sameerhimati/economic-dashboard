@@ -2,79 +2,17 @@ import { useState } from 'react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ChevronDown, ChevronUp, TrendingUp, DollarSign, Building, BadgeDollarSign, Percent, MapPin, Building2, ExternalLink } from 'lucide-react'
+import { ChevronDown, ChevronUp, MapPin, Building2, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getCategoryColor, getMetricIcon, formatMetricType, getRelativeTime } from '@/lib/newsletter-utils'
 import { NewsletterModal } from './NewsletterModal'
 import { BookmarkButton } from '@/components/bookmarks/BookmarkButton'
-import type { Newsletter, MetricType } from '@/types/newsletter'
+import type { Newsletter } from '@/types/newsletter'
 
 interface NewsletterCardProps {
   newsletter: Newsletter
   defaultExpanded?: boolean
   onOpenModal?: (newsletter: Newsletter) => void
-}
-
-// Map categories to badge colors
-const getCategoryColor = (category: string): "blue" | "green" | "purple" | "orange" | "pink" | "yellow" | "indigo" | "gray" => {
-  const categoryLower = category.toLowerCase()
-
-  if (categoryLower.includes('houston')) return 'blue'
-  if (categoryLower.includes('austin') || categoryLower.includes('san antonio')) return 'green'
-  if (categoryLower.includes('national')) return 'purple'
-  if (categoryLower.includes('capital markets')) return 'orange'
-  if (categoryLower.includes('multifamily')) return 'pink'
-  if (categoryLower.includes('retail')) return 'yellow'
-  if (categoryLower.includes('student housing')) return 'indigo'
-
-  return 'gray'
-}
-
-// Map metric types to icons
-const getMetricIcon = (type: MetricType) => {
-  switch (type) {
-    case 'cap_rate':
-      return TrendingUp
-    case 'deal_value':
-      return DollarSign
-    case 'square_footage':
-      return Building
-    case 'price_per_sf':
-      return BadgeDollarSign
-    case 'occupancy_rate':
-      return Percent
-  }
-}
-
-// Format metric type for display
-const formatMetricType = (type: MetricType): string => {
-  const typeMap: Record<MetricType, string> = {
-    cap_rate: 'Cap Rate',
-    deal_value: 'Deal Value',
-    square_footage: 'Square Footage',
-    price_per_sf: 'Price/SF',
-    occupancy_rate: 'Occupancy'
-  }
-  return typeMap[type]
-}
-
-// Calculate relative time
-const getRelativeTime = (dateString: string): string => {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffSeconds = Math.floor(diffMs / 1000)
-  const diffMinutes = Math.floor(diffSeconds / 60)
-  const diffHours = Math.floor(diffMinutes / 60)
-  const diffDays = Math.floor(diffHours / 24)
-
-  if (diffSeconds < 60) return 'just now'
-  if (diffMinutes < 60) return `${diffMinutes}m ago`
-  if (diffHours < 24) return `${diffHours}h ago`
-  if (diffDays === 1) return 'yesterday'
-  if (diffDays < 7) return `${diffDays}d ago`
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`
-
-  return date.toLocaleDateString()
 }
 
 export function NewsletterCard({ newsletter, defaultExpanded = false, onOpenModal }: NewsletterCardProps) {
@@ -174,8 +112,49 @@ export function NewsletterCard({ newsletter, defaultExpanded = false, onOpenModa
           </div>
         )}
 
-        {/* Headlines */}
-        {newsletter.key_points.headlines.length > 0 && (
+        {/* Articles */}
+        {newsletter.key_points.articles && newsletter.key_points.articles.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Top Stories
+            </h4>
+            <ul className="space-y-2">
+              {newsletter.key_points.articles.slice(0, isExpanded ? undefined : 5).map((article, index) => (
+                <li key={index} className="group">
+                  {article.url ? (
+                    <a
+                      href={article.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-start gap-2 text-sm hover:text-primary transition-colors p-2 -m-2 rounded-md hover:bg-muted/50"
+                    >
+                      <span className="text-primary font-bold mt-0.5 flex-shrink-0">•</span>
+                      <span className="flex-1 line-clamp-2">{article.headline}</span>
+                      <ExternalLink className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground" />
+                    </a>
+                  ) : (
+                    <div className="flex items-start gap-2 text-sm p-2 -m-2">
+                      <span className="text-primary font-bold mt-0.5 flex-shrink-0">•</span>
+                      <span className="flex-1 line-clamp-2 text-muted-foreground">{article.headline}</span>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+            {!isExpanded && newsletter.key_points.articles.length > 5 && (
+              <button
+                onClick={() => setIsExpanded(true)}
+                className="text-xs text-primary hover:underline font-medium"
+              >
+                +{newsletter.key_points.articles.length - 5} more stories
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Fallback to headlines if no articles */}
+        {(!newsletter.key_points.articles || newsletter.key_points.articles.length === 0) &&
+         newsletter.key_points.headlines.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Headlines

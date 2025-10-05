@@ -1,5 +1,10 @@
 export type MetricType = 'cap_rate' | 'deal_value' | 'square_footage' | 'price_per_sf' | 'occupancy_rate'
 
+export interface Article {
+  headline: string
+  url: string
+}
+
 export interface NewsletterMetric {
   type: MetricType
   value: string
@@ -8,6 +13,7 @@ export interface NewsletterMetric {
 
 export interface NewsletterKeyPoints {
   headlines: string[]
+  articles: Article[]
   metrics: NewsletterMetric[]
   locations: string[]
   companies: string[]

@@ -6,72 +6,31 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Bookmark,
   TrendingUp,
-  DollarSign,
-  Building,
-  BadgeDollarSign,
-  Percent,
   MapPin,
   Building2,
   Check,
-  Copy
+  Copy,
+  ExternalLink,
+  FileText,
+  Newspaper
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getCategoryColor, getMetricIcon, formatMetricType } from '@/lib/newsletter-utils'
 import { isBookmarked, toggleBookmark } from '@/lib/bookmarks'
 import { toast } from 'sonner'
-import type { Newsletter, MetricType } from '@/types/newsletter'
+import type { Newsletter } from '@/types/newsletter'
 
 interface NewsletterModalProps {
   newsletter: Newsletter | null
   open: boolean
   onOpenChange: (open: boolean) => void
-}
-
-// Map categories to badge colors (same as NewsletterCard)
-const getCategoryColor = (category: string): "blue" | "green" | "purple" | "orange" | "pink" | "yellow" | "indigo" | "gray" => {
-  const categoryLower = category.toLowerCase()
-
-  if (categoryLower.includes('houston')) return 'blue'
-  if (categoryLower.includes('austin') || categoryLower.includes('san antonio')) return 'green'
-  if (categoryLower.includes('national')) return 'purple'
-  if (categoryLower.includes('capital markets')) return 'orange'
-  if (categoryLower.includes('multifamily')) return 'pink'
-  if (categoryLower.includes('retail')) return 'yellow'
-  if (categoryLower.includes('student housing')) return 'indigo'
-
-  return 'gray'
-}
-
-// Map metric types to icons
-const getMetricIcon = (type: MetricType) => {
-  switch (type) {
-    case 'cap_rate':
-      return TrendingUp
-    case 'deal_value':
-      return DollarSign
-    case 'square_footage':
-      return Building
-    case 'price_per_sf':
-      return BadgeDollarSign
-    case 'occupancy_rate':
-      return Percent
-  }
-}
-
-// Format metric type for display
-const formatMetricType = (type: MetricType): string => {
-  const typeMap: Record<MetricType, string> = {
-    cap_rate: 'Cap Rate',
-    deal_value: 'Deal Value',
-    square_footage: 'Square Footage',
-    price_per_sf: 'Price/SF',
-    occupancy_rate: 'Occupancy'
-  }
-  return typeMap[type]
 }
 
 export function NewsletterModal({ newsletter, open, onOpenChange }: NewsletterModalProps) {
@@ -225,123 +184,296 @@ export function NewsletterModal({ newsletter, open, onOpenChange }: NewsletterMo
           </div>
         </DialogHeader>
 
-        {/* Content */}
-        <div className="overflow-y-auto px-6 py-6 max-h-[calc(90vh-200px)]">
-          <div className="space-y-6 pb-6">
-            {/* Key Metrics */}
-            {newsletter.key_points.metrics.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4" />
-                  Key Metrics
-                </h3>
+        {/* Content with Tabs */}
+        <div className="overflow-y-auto px-6 py-4 max-h-[calc(90vh-200px)]">
+          <Tabs defaultValue="articles" className="w-full">
+            <TabsList className="grid w-full grid-cols-4 mb-4">
+              <TabsTrigger value="articles" className="gap-1.5">
+                <Newspaper className="h-4 w-4" />
+                <span className="hidden sm:inline">Articles</span>
+                {newsletter.key_points.articles && newsletter.key_points.articles.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1.5">
+                    {newsletter.key_points.articles.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="metrics" className="gap-1.5">
+                <TrendingUp className="h-4 w-4" />
+                <span className="hidden sm:inline">Metrics</span>
+                {newsletter.key_points.metrics.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1.5">
+                    {newsletter.key_points.metrics.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="details" className="gap-1.5">
+                <Building2 className="h-4 w-4" />
+                <span className="hidden sm:inline">Details</span>
+              </TabsTrigger>
+              <TabsTrigger value="content" className="gap-1.5">
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">Full Text</span>
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Articles Tab */}
+            <TabsContent value="articles" className="space-y-4 mt-0">
+              {newsletter.key_points.articles && newsletter.key_points.articles.length > 0 ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Newspaper className="h-5 w-5 text-primary" />
+                      Featured Articles
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-3">
+                      {newsletter.key_points.articles.map((article, index) => (
+                        <li key={index} className="group border-b border-border/50 last:border-0 pb-3 last:pb-0">
+                          {article.url ? (
+                            <a
+                              href={article.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-start gap-3 p-2 -mx-2 rounded-lg hover:bg-muted/50 transition-all"
+                            >
+                              <span className="text-primary font-bold text-lg mt-0.5 flex-shrink-0">
+                                {index + 1}.
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-base font-medium leading-relaxed group-hover:text-primary transition-colors">
+                                  {article.headline}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                                  <ExternalLink className="h-3 w-3" />
+                                  Read on Bisnow
+                                </p>
+                              </div>
+                              <ExternalLink className="h-4 w-4 mt-1 flex-shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </a>
+                          ) : (
+                            <div className="flex items-start gap-3 p-2 -mx-2">
+                              <span className="text-muted-foreground font-bold text-lg mt-0.5 flex-shrink-0">
+                                {index + 1}.
+                              </span>
+                              <p className="text-base leading-relaxed text-muted-foreground">
+                                {article.headline}
+                              </p>
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Newspaper className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                      <p className="text-sm">No articles extracted from this newsletter</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Fallback to headlines if no articles */}
+              {(!newsletter.key_points.articles || newsletter.key_points.articles.length === 0) &&
+               newsletter.key_points.headlines.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Headlines</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2.5">
+                      {newsletter.key_points.headlines.map((headline, index) => (
+                        <li key={index} className="flex items-start gap-3 text-base">
+                          <span className="text-primary font-bold mt-1 flex-shrink-0">•</span>
+                          <span className="flex-1 leading-relaxed">{headline}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            {/* Metrics Tab */}
+            <TabsContent value="metrics" className="space-y-4 mt-0">
+              {newsletter.key_points.metrics.length > 0 ? (
                 <div className="grid gap-3 sm:grid-cols-2">
                   {newsletter.key_points.metrics.map((metric, index) => {
                     const Icon = getMetricIcon(metric.type)
                     return (
-                      <div
-                        key={index}
-                        className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors border border-border/50"
-                      >
-                        <Icon className="h-5 w-5 mt-0.5 text-primary flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-baseline gap-2 flex-wrap mb-1">
-                            <span className="text-xs font-medium text-muted-foreground">
-                              {formatMetricType(metric.type)}
-                            </span>
-                            <span className="text-lg font-bold">
-                              {metric.value}
-                            </span>
+                      <Card key={index} className="hover:shadow-md transition-shadow">
+                        <CardContent className="pt-6">
+                          <div className="flex items-start gap-3">
+                            <div className="p-2 rounded-lg bg-primary/10">
+                              <Icon className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-muted-foreground mb-1">
+                                {formatMetricType(metric.type)}
+                              </p>
+                              <p className="text-xl font-bold mb-2">
+                                {metric.value}
+                              </p>
+                              <p className="text-sm text-muted-foreground leading-relaxed">
+                                {metric.context}
+                              </p>
+                            </div>
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            {metric.context}
-                          </p>
-                        </div>
-                      </div>
+                        </CardContent>
+                      </Card>
                     )
                   })}
                 </div>
-              </div>
-            )}
+              ) : (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center py-8 text-muted-foreground">
+                      <TrendingUp className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                      <p className="text-sm">No metrics extracted from this newsletter</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
 
-            {/* Headlines */}
-            {newsletter.key_points.headlines.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                  Headlines
-                </h3>
-                <ul className="space-y-2.5">
-                  {newsletter.key_points.headlines.map((headline, index) => (
-                    <li key={index} className="flex items-start gap-3 text-base">
-                      <span className="text-primary font-bold mt-1 flex-shrink-0">•</span>
-                      <span className="flex-1 leading-relaxed">{headline}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {/* Details Tab */}
+            <TabsContent value="details" className="space-y-4 mt-0">
+              {/* Locations */}
+              {newsletter.key_points.locations.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <MapPin className="h-5 w-5 text-primary" />
+                      Locations Mentioned
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {newsletter.key_points.locations.map((location, index) => (
+                        <Badge key={index} variant="outline" className="text-sm py-1.5 px-3">
+                          <MapPin className="h-3 w-3 mr-1.5" />
+                          {location}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
-            {/* Locations */}
-            {newsletter.key_points.locations.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Locations
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {newsletter.key_points.locations.map((location, index) => (
-                    <Badge key={index} variant="outline" className="text-sm py-1 px-3">
-                      {location}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
+              {/* Companies */}
+              {newsletter.key_points.companies.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Building2 className="h-5 w-5 text-primary" />
+                      Companies Mentioned
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {newsletter.key_points.companies.map((company, index) => (
+                        <Badge key={index} variant="outline" className="text-sm py-1.5 px-3">
+                          <Building2 className="h-3 w-3 mr-1.5" />
+                          {company}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
-            {/* Companies */}
-            {newsletter.key_points.companies.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  Companies
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {newsletter.key_points.companies.map((company, index) => (
-                    <Badge key={index} variant="outline" className="text-sm py-1 px-3">
-                      {company}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
+              {/* Metadata */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Newsletter Metadata</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid gap-3 text-sm">
+                    <div className="flex items-start justify-between py-2 border-b border-border/50">
+                      <span className="font-medium text-muted-foreground">Source</span>
+                      <span className="text-right font-mono text-xs">{newsletter.source}</span>
+                    </div>
+                    <div className="flex items-start justify-between py-2 border-b border-border/50">
+                      <span className="font-medium text-muted-foreground">Category</span>
+                      <Badge variant={categoryColor}>{newsletter.category}</Badge>
+                    </div>
+                    <div className="flex items-start justify-between py-2 border-b border-border/50">
+                      <span className="font-medium text-muted-foreground">Received</span>
+                      <span className="text-right">
+                        {new Date(newsletter.received_date).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex items-start justify-between py-2">
+                      <span className="font-medium text-muted-foreground">Parsed</span>
+                      <span className="text-right">
+                        {new Date(newsletter.parsed_date).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-            {/* Full Content */}
-            {(newsletter.content_html || newsletter.content_text) && (
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                  Full Content
-                </h3>
-                <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                  {newsletter.content_html ? (
-                    <div
-                      className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground prose-a:text-primary hover:prose-a:text-primary/80"
-                      dangerouslySetInnerHTML={{ __html: newsletter.content_html }}
-                    />
-                  ) : (
-                    <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
-                      {newsletter.content_text}
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
+              {/* Empty State */}
+              {newsletter.key_points.locations.length === 0 &&
+               newsletter.key_points.companies.length === 0 && (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Building2 className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                      <p className="text-sm">No locations or companies extracted</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
 
-            {/* Keyboard Shortcuts Hint */}
-            <div className="pt-4 border-t">
-              <p className="text-xs text-muted-foreground text-center">
-                Keyboard shortcuts: <kbd className="px-1.5 py-0.5 rounded bg-muted text-xs">B</kbd> Bookmark • <kbd className="px-1.5 py-0.5 rounded bg-muted text-xs">S</kbd> Share • <kbd className="px-1.5 py-0.5 rounded bg-muted text-xs">ESC</kbd> Close
-              </p>
-            </div>
+            {/* Full Content Tab */}
+            <TabsContent value="content" className="mt-0">
+              {(newsletter.content_html || newsletter.content_text) ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-primary" />
+                      Full Newsletter Content
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="max-h-[60vh] overflow-y-auto p-4 rounded-lg bg-muted/30 border border-border/50">
+                      {newsletter.content_html ? (
+                        <div
+                          className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground prose-a:text-primary hover:prose-a:text-primary/80"
+                          dangerouslySetInnerHTML={{ __html: newsletter.content_html }}
+                        />
+                      ) : (
+                        <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
+                          {newsletter.content_text}
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center py-8 text-muted-foreground">
+                      <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                      <p className="text-sm">No content available</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+          </Tabs>
+
+          {/* Keyboard Shortcuts Hint */}
+          <div className="pt-4 mt-4 border-t">
+            <p className="text-xs text-muted-foreground text-center">
+              Keyboard shortcuts: <kbd className="px-1.5 py-0.5 rounded bg-muted text-xs">B</kbd> Bookmark • <kbd className="px-1.5 py-0.5 rounded bg-muted text-xs">S</kbd> Share • <kbd className="px-1.5 py-0.5 rounded bg-muted text-xs">ESC</kbd> Close
+            </p>
           </div>
         </div>
       </DialogContent>
