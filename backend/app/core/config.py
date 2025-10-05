@@ -70,11 +70,11 @@ class Settings(BaseSettings):
     FRED_API_TIMEOUT: int = Field(default=30, description="FRED API request timeout in seconds")
     FRED_RATE_LIMIT_PER_MINUTE: int = Field(default=120, description="FRED API rate limit")
 
-    # Email Settings for Newsletter Parsing
-    EMAIL_ADDRESS: str = Field(..., description="Email address for IMAP connection (e.g., Gmail)")
-    EMAIL_APP_PASSWORD: str = Field(..., description="Email app-specific password for IMAP")
-    IMAP_SERVER: str = Field(default="imap.gmail.com", description="IMAP server address")
-    IMAP_PORT: int = Field(default=993, description="IMAP server port (SSL)")
+    # Email Settings for Newsletter Parsing (Optional - users configure their own)
+    EMAIL_ADDRESS: Optional[str] = Field(default=None, description="Email address for IMAP connection (deprecated - users configure their own)")
+    EMAIL_APP_PASSWORD: Optional[str] = Field(default=None, description="Email app-specific password for IMAP (deprecated - users configure their own)")
+    IMAP_SERVER: str = Field(default="imap.gmail.com", description="Default IMAP server address")
+    IMAP_PORT: int = Field(default=993, description="Default IMAP server port (SSL)")
 
     # Logging Settings
     LOG_LEVEL: str = Field(default="INFO", description="Logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL")
