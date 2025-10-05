@@ -17,6 +17,7 @@ from functools import partial
 from bs4 import BeautifulSoup
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
+from email.header import decode_header
 
 from app.core.config import settings
 from app.models.newsletter import Newsletter
@@ -213,6 +214,35 @@ class EmailService:
             finally:
                 self.connection = None
 
+    def _decode_subject(self, subject: str) -> str:
+        """
+        Decode email subject that may be encoded (e.g., =?utf-8?B?...=).
+
+        Args:
+            subject: Raw email subject string
+
+        Returns:
+            str: Decoded subject string
+        """
+        try:
+            # decode_header returns a list of (decoded_string, charset) tuples
+            decoded_parts = decode_header(subject)
+            decoded_subject = ""
+
+            for part, encoding in decoded_parts:
+                if isinstance(part, bytes):
+                    # Decode bytes to string using the specified encoding or utf-8 as fallback
+                    decoded_subject += part.decode(encoding or 'utf-8', errors='ignore')
+                else:
+                    # Already a string
+                    decoded_subject += part
+
+            return decoded_subject.strip()
+
+        except Exception as e:
+            logger.warning(f"Error decoding subject '{subject[:50]}...': {str(e)}")
+            return subject
+
     def _identify_category(self, subject: str) -> str:
         """
         Identify newsletter category from subject line.
@@ -269,33 +299,146 @@ class EmailService:
             logger.error(f"Error extracting text from HTML: {str(e)}")
             return ""
 
-    def _extract_headlines(self, soup: BeautifulSoup) -> List[str]:
+    def _extract_articles(self, soup: BeautifulSoup) -> List[Dict[str, str]]:
         """
-        Extract headlines from HTML.
+        Extract article headline and URL pairs from HTML.
 
         Args:
             soup: BeautifulSoup object
 
         Returns:
-            List[str]: List of headlines
+            List[Dict[str, str]]: List of article dictionaries with 'headline' and 'url' keys
         """
-        headlines = []
+        articles = []
+        seen_headlines = set()
 
         # Look for h1, h2, h3 tags
         for tag in soup.find_all(['h1', 'h2', 'h3']):
             text = tag.get_text(strip=True)
             if text and len(text) > 10:  # Filter out very short text
-                headlines.append(text)
+                url = self._find_article_url(tag)
+
+                if text not in seen_headlines:
+                    articles.append({
+                        "headline": text,
+                        "url": url or ""
+                    })
+                    seen_headlines.add(text)
 
         # Look for bold text that might be headlines
         for tag in soup.find_all(['b', 'strong']):
             text = tag.get_text(strip=True)
             # Only include if it's relatively short (likely a headline, not a paragraph)
-            if text and 10 < len(text) < 200 and text not in headlines:
-                headlines.append(text)
+            if text and 10 < len(text) < 200 and text not in seen_headlines:
+                url = self._find_article_url(tag)
 
-        # Limit to first 20 headlines to avoid noise
-        return headlines[:20]
+                articles.append({
+                    "headline": text,
+                    "url": url or ""
+                })
+                seen_headlines.add(text)
+
+        # Limit to first 20 articles to avoid noise
+        return articles[:20]
+
+    def _find_article_url(self, tag) -> Optional[str]:
+        """
+        Find the URL associated with a headline tag by looking at parent/sibling anchor tags.
+
+        Args:
+            tag: BeautifulSoup tag element
+
+        Returns:
+            Optional[str]: URL if found, None otherwise
+        """
+        try:
+            # Case 1: The tag itself is inside an anchor
+            parent_a = tag.find_parent('a')
+            if parent_a and parent_a.get('href'):
+                href = parent_a.get('href')
+                if self._is_valid_article_url(href):
+                    return href
+
+            # Case 2: The tag has a child anchor
+            child_a = tag.find('a')
+            if child_a and child_a.get('href'):
+                href = child_a.get('href')
+                if self._is_valid_article_url(href):
+                    return href
+
+            # Case 3: Look for sibling anchors (before or after)
+            next_sibling = tag.find_next_sibling('a')
+            if next_sibling and next_sibling.get('href'):
+                href = next_sibling.get('href')
+                if self._is_valid_article_url(href):
+                    return href
+
+            prev_sibling = tag.find_previous_sibling('a')
+            if prev_sibling and prev_sibling.get('href'):
+                href = prev_sibling.get('href')
+                if self._is_valid_article_url(href):
+                    return href
+
+            # Case 4: Look in parent container for nearby anchors
+            parent = tag.parent
+            if parent:
+                nearby_a = parent.find('a')
+                if nearby_a and nearby_a.get('href'):
+                    href = nearby_a.get('href')
+                    if self._is_valid_article_url(href):
+                        return href
+
+        except Exception as e:
+            logger.debug(f"Error finding article URL: {str(e)}")
+
+        return None
+
+    def _is_valid_article_url(self, url: str) -> bool:
+        """
+        Check if a URL is a valid Bisnow article URL.
+
+        Args:
+            url: URL string
+
+        Returns:
+            bool: True if URL is a valid article URL
+        """
+        if not url:
+            return False
+
+        # Filter out common non-article URLs
+        invalid_patterns = [
+            'unsubscribe',
+            'mailto:',
+            'tel:',
+            'javascript:',
+            '#',
+            'facebook.com',
+            'twitter.com',
+            'linkedin.com',
+            'instagram.com',
+        ]
+
+        url_lower = url.lower()
+        for pattern in invalid_patterns:
+            if pattern in url_lower:
+                return False
+
+        # Check for Bisnow domain patterns
+        bisnow_patterns = [
+            'bisnow.com',
+            'info.bisnow.com',
+        ]
+
+        for pattern in bisnow_patterns:
+            if pattern in url_lower:
+                return True
+
+        # If it's a full URL but not Bisnow, reject it
+        if url.startswith('http://') or url.startswith('https://'):
+            return False
+
+        return False
 
     def _extract_metrics(self, text: str) -> List[Dict[str, Any]]:
         """
@@ -424,13 +567,13 @@ class EmailService:
             text_content: Plain text content
 
         Returns:
-            Dict: Extracted key points
+            Dict: Extracted key points including articles with headlines and URLs
         """
         # Parse HTML
         soup = BeautifulSoup(html_content, 'html.parser')
 
-        # Extract headlines
-        headlines = self._extract_headlines(soup)
+        # Extract articles (headline + URL pairs)
+        articles = self._extract_articles(soup)
 
         # Use plain text for metric/entity extraction
         content_for_extraction = text_content if text_content else self._extract_text_from_html(html_content)
@@ -445,7 +588,7 @@ class EmailService:
         companies = self._extract_companies(content_for_extraction)
 
         return {
-            "headlines": headlines,
+            "articles": articles,
             "metrics": metrics,
             "locations": locations,
             "companies": companies
@@ -579,8 +722,9 @@ class EmailService:
                         if not any(domain in sender for domain in sender_filter):
                             continue
 
-                    # Get subject
-                    subject = msg.get('Subject', '')
+                    # Get and decode subject
+                    raw_subject = msg.get('Subject', '')
+                    subject = self._decode_subject(raw_subject)
 
                     # Get date
                     date_str = msg.get('Date', '')
@@ -625,7 +769,8 @@ class EmailService:
 
                     logger.info(
                         f"Parsed email: {subject[:50]}... "
-                        f"(category: {category}, metrics: {len(key_points.get('metrics', []))})"
+                        f"(category: {category}, articles: {len(key_points.get('articles', []))}, "
+                        f"metrics: {len(key_points.get('metrics', []))})"
                     )
 
                 except Exception as e:
