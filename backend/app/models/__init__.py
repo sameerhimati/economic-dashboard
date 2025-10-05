@@ -8,6 +8,9 @@ from app.models.user import User
 from app.models.data_point import DataPoint, SeriesMetadata
 from app.models.fred_data import FredDataPoint
 from app.models.newsletter import Newsletter
+from app.models.article import Article
+from app.models.article_source import ArticleSource
+from app.models.article_bookmark import ArticleBookmark
 from app.models.bookmark_list import BookmarkList
 from app.models.newsletter_bookmark import NewsletterBookmark
 
@@ -19,6 +22,9 @@ __all__ = [
     "SeriesMetadata",
     "FredDataPoint",
     "Newsletter",
+    "Article",
+    "ArticleSource",
+    "ArticleBookmark",
     "BookmarkList",
     "NewsletterBookmark",
 ]

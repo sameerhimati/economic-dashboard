@@ -1,7 +1,7 @@
 """
-BookmarkList database model for organizing newsletters into custom lists.
+BookmarkList database model for organizing articles into custom lists.
 
-Allows users to create custom bookmark lists (max 10) to organize their newsletters.
+Allows users to create custom bookmark lists (max 10) to organize their articles.
 """
 from typing import TYPE_CHECKING
 import uuid
@@ -15,22 +15,24 @@ from app.models.base import Base, TimestampMixin
 if TYPE_CHECKING:
     from app.models.user import User
     from app.models.newsletter import Newsletter
+    from app.models.article import Article
 
 
 class BookmarkList(Base, TimestampMixin):
     """
-    BookmarkList model for organizing newsletters into custom lists.
+    BookmarkList model for organizing articles into custom lists.
 
     Users can create custom bookmark lists to organize and categorize
-    their newsletters. Each user can create up to 10 bookmark lists,
-    and each list can contain multiple newsletters.
+    their articles. Each user can create up to 10 bookmark lists,
+    and each list can contain multiple articles.
 
     Attributes:
         id: Unique bookmark list identifier (UUID)
         user_id: ID of user who owns this bookmark list
         name: Name of the bookmark list (e.g., 'Houston Deals', 'Market Trends')
         user: User relationship
-        newsletters: Many-to-many relationship with Newsletter through newsletter_bookmarks
+        articles: Many-to-many relationship with Article through article_bookmarks
+        newsletters: Many-to-many relationship with Newsletter (deprecated - will be removed)
         created_at: When the bookmark list was created (from TimestampMixin)
         updated_at: When the bookmark list was last updated (from TimestampMixin)
     """
@@ -68,13 +70,22 @@ class BookmarkList(Base, TimestampMixin):
         back_populates="bookmark_lists"
     )
 
-    # Many-to-many relationship with Newsletter through newsletter_bookmarks
+    # Many-to-many relationship with Article through article_bookmarks
+    articles: Mapped[list["Article"]] = relationship(
+        "Article",
+        secondary="article_bookmarks",
+        back_populates="bookmark_lists",
+        lazy="selectin",
+        doc="Articles saved to this bookmark list"
+    )
+
+    # Many-to-many relationship with Newsletter through newsletter_bookmarks (deprecated - will be removed)
     newsletters: Mapped[list["Newsletter"]] = relationship(
         "Newsletter",
         secondary="newsletter_bookmarks",
         back_populates="bookmark_lists",
         lazy="selectin",
-        doc="Newsletters saved to this bookmark list"
+        doc="Newsletters saved to this bookmark list (deprecated - use articles instead)"
     )
 
     # Table constraints and indexes

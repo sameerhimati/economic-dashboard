@@ -14,6 +14,7 @@ from app.models.base import Base, TimestampMixin
 if TYPE_CHECKING:
     from app.models.newsletter import Newsletter
     from app.models.bookmark_list import BookmarkList
+    from app.models.article import Article
 
 
 class User(Base, TimestampMixin):
@@ -137,12 +138,20 @@ class User(Base, TimestampMixin):
         lazy="selectin"
     )
 
+    articles: Mapped[list["Article"]] = relationship(
+        "Article",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        doc="User's articles extracted from newsletters"
+    )
+
     bookmark_lists: Mapped[list["BookmarkList"]] = relationship(
         "BookmarkList",
         back_populates="user",
         cascade="all, delete-orphan",
         lazy="selectin",
-        doc="User's custom bookmark lists for organizing newsletters"
+        doc="User's custom bookmark lists for organizing articles"
     )
 
     def __repr__(self) -> str:

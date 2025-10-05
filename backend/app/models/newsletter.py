@@ -16,6 +16,7 @@ from app.models.base import Base, TimestampMixin
 if TYPE_CHECKING:
     from app.models.user import User
     from app.models.bookmark_list import BookmarkList
+    from app.models.article_source import ArticleSource
 
 
 class Newsletter(Base, TimestampMixin):
@@ -67,13 +68,22 @@ class Newsletter(Base, TimestampMixin):
         back_populates="newsletters"
     )
 
-    # Many-to-many relationship with BookmarkList through newsletter_bookmarks
+    # Relationship to articles through article_sources junction table
+    article_sources: Mapped[list["ArticleSource"]] = relationship(
+        "ArticleSource",
+        back_populates="newsletter",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        doc="Articles extracted from this newsletter"
+    )
+
+    # Many-to-many relationship with BookmarkList through newsletter_bookmarks (deprecated - will be removed)
     bookmark_lists: Mapped[list["BookmarkList"]] = relationship(
         "BookmarkList",
         secondary="newsletter_bookmarks",
         back_populates="newsletters",
         lazy="selectin",
-        doc="Bookmark lists that contain this newsletter"
+        doc="Bookmark lists that contain this newsletter (deprecated - use article bookmarks instead)"
     )
 
     # Email source/sender
