@@ -66,14 +66,9 @@ export function Header() {
         <div className="container flex h-14 items-center justify-between">
           <div className="flex items-center gap-2.5">
             <TrendingUp className="h-5 w-5 text-primary" />
-            <div>
-              <h1 className="text-lg font-semibold tracking-tight">
-                Economic Dashboard
-              </h1>
-              <p className="text-[10px] text-muted-foreground hidden sm:block">
-                {gradient.description}
-              </p>
-            </div>
+            <h1 className="text-lg font-semibold tracking-tight">
+              Economic Dashboard
+            </h1>
           </div>
 
           <div className="flex items-center gap-2">
