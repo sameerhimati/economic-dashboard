@@ -58,9 +58,9 @@ export const useAuth = create<AuthState>((set, get) => ({
       set({ isLoading: true, error: null })
       await authService.register(credentials)
 
-      // Auto-login after registration
+      // Auto-login after registration (use email, not username)
       await get().login({
-        username: credentials?.username || '',
+        username: credentials?.email || '',
         password: credentials?.password || '',
       })
     } catch (error: any) {
