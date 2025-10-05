@@ -289,7 +289,7 @@ async def fetch_newsletters(
             result = await email_service.fetch_and_store_emails(
                 db=db,
                 days=days,
-                sender_filter=['@bisnow.com', '@mail.bisnow.com'],
+                sender_filter=None,  # Use default filter from EmailService (includes all Bisnow domains)
                 user_id=current_user.id  # Associate newsletters with this user
             )
         except EmailServiceError as e:
