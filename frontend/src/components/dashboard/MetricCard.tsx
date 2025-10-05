@@ -1,5 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { SparkLine } from '@/components/charts/SparkLine'
 import { formatNumber, formatPercent } from '@/lib/utils'
 import { TrendingUp, TrendingDown, Minus, Star } from 'lucide-react'
