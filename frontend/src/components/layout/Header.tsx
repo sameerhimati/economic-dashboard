@@ -10,14 +10,12 @@ import {
 import { TrendingUp, LogOut, Sun, Moon, Monitor, Settings } from 'lucide-react'
 import { useEffect, useState, useCallback } from 'react'
 import { SettingsModal } from '@/components/settings/SettingsModal'
-import { useDayGradient } from '@/hooks/useDayGradient'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 
 type Theme = 'light' | 'dark' | 'system'
 
 export function Header() {
   const { user, logout } = useAuth()
-  const { gradient } = useDayGradient()
   const [theme, setTheme] = useState<Theme>(() => {
     const savedTheme = localStorage.getItem('theme') as Theme
     return savedTheme || 'dark'
