@@ -140,3 +140,11 @@ class NewsletterStatsResponse(BaseModel):
     by_source: Dict[str, int] = Field(..., description="Count by source")
     date_range: Dict[str, datetime] = Field(..., description="Earliest and latest dates")
     recent_count: int = Field(..., description="Count from last 7 days")
+
+
+class NewsletterCleanupResponse(BaseModel):
+    """Schema for newsletter cleanup response."""
+
+    status: str = Field(..., description="Operation status")
+    deleted_count: int = Field(..., description="Number of newsletters deleted")
+    timestamp: str = Field(..., description="Operation timestamp")
