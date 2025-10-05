@@ -42,6 +42,22 @@ export interface AvailableCategories {
   categories: string[]
 }
 
+export interface NewsletterListResponse {
+  newsletters: Newsletter[]
+  count: number
+  page: number
+  page_size: number
+}
+
+export interface NewsletterSearchResponse {
+  newsletters: Newsletter[]
+  count: number
+  total_count: number
+  query: string
+  page: number
+  page_size: number
+}
+
 class NewsletterService {
   /**
    * Get recent newsletters with optional category filter
@@ -53,8 +69,8 @@ class NewsletterService {
         params.category = category
       }
 
-      const response = await apiClient.get<Newsletter[]>('/newsletters/recent', { params })
-      return response.data
+      const response = await apiClient.get<NewsletterListResponse>('/newsletters/recent', { params })
+      return response.data.newsletters
     } catch (error) {
       console.error('Error fetching recent newsletters:', error)
       throw error
@@ -78,8 +94,8 @@ class NewsletterService {
         params.offset = filters.offset
       }
 
-      const response = await apiClient.get<Newsletter[]>('/newsletters/search', { params })
-      return response.data
+      const response = await apiClient.get<NewsletterSearchResponse>('/newsletters/search', { params })
+      return response.data.newsletters
     } catch (error) {
       console.error('Error searching newsletters:', error)
       throw error
