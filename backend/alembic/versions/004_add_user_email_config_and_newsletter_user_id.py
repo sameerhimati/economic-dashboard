@@ -87,7 +87,7 @@ def upgrade() -> None:
         SET
             imap_server = 'imap.gmail.com',
             imap_port = 993,
-            newsletter_preferences = '{}'::jsonb
+            newsletter_preferences = '{}'::json
         WHERE imap_server IS NULL
     """)
 

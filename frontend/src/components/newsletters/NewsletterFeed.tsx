@@ -217,16 +217,16 @@ export function NewsletterFeed({
           <CardContent className="pt-6">
             <div className="flex flex-col items-center justify-center space-y-4 py-12">
               <Inbox className="h-16 w-16 text-muted-foreground/50" />
-              <div className="text-center space-y-2">
+              <div className="text-center space-y-2 max-w-md">
                 <p className="text-lg font-medium">No newsletters found</p>
                 <p className="text-sm text-muted-foreground">
                   {debouncedSearch
                     ? 'Try adjusting your search query or filters'
-                    : 'Check back later for new newsletters'
+                    : 'To get started, configure your email settings to fetch newsletters from your Gmail account.'
                   }
                 </p>
               </div>
-              {(debouncedSearch || selectedCategory !== 'all') && (
+              {(debouncedSearch || selectedCategory !== 'all') ? (
                 <Button
                   onClick={() => {
                     setSearchQuery('')
@@ -237,6 +237,15 @@ export function NewsletterFeed({
                 >
                   Clear Filters
                 </Button>
+              ) : (
+                <div className="flex flex-col gap-2 text-sm text-muted-foreground text-center">
+                  <p>Steps to set up:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-left">
+                    <li>Go to Settings → Email Configuration</li>
+                    <li>Add your Gmail address and app password</li>
+                    <li>Click "Fetch Newsletters" to import your Bisnow emails</li>
+                  </ol>
+                </div>
               )}
             </div>
           </CardContent>

@@ -85,10 +85,6 @@ export function NewsletterStats() {
     )
   }
 
-  if (!stats) {
-    return null
-  }
-
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A'
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -98,7 +94,26 @@ export function NewsletterStats() {
     })
   }
 
-  const categoryCount = Object.keys(stats.categories).length
+  // Show empty state if no data
+  if (!stats || stats.total_count === 0) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col items-center justify-center space-y-4 py-12">
+            <BarChart className="h-16 w-16 text-muted-foreground/50" />
+            <div className="text-center space-y-2 max-w-md">
+              <p className="text-lg font-medium">No statistics available</p>
+              <p className="text-sm text-muted-foreground">
+                Configure your email settings and fetch newsletters to see statistics and insights.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const categoryCount = Object.keys(stats.categories || {}).length
 
   return (
     <div className="space-y-6">
