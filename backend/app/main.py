@@ -23,6 +23,7 @@ from app.api.routes import (
     dashboard_router,
     newsletters_router,
     user_settings_router,
+    bookmarks_router,
 )
 
 # Configure logging
@@ -242,6 +243,7 @@ app.include_router(data_router)
 app.include_router(dashboard_router)
 app.include_router(newsletters_router)
 app.include_router(user_settings_router)
+app.include_router(bookmarks_router)
 
 
 # Root endpoint

@@ -9,6 +9,7 @@ from app.api.routes.data import router as data_router
 from app.api.routes.dashboard import router as dashboard_router
 from app.api.routes.newsletters import router as newsletters_router
 from app.api.routes.user_settings import router as user_settings_router
+from app.api.routes.bookmarks import router as bookmarks_router
 
 __all__ = [
     "health_router",
@@ -17,4 +18,5 @@ __all__ = [
     "dashboard_router",
     "newsletters_router",
     "user_settings_router",
+    "bookmarks_router",
 ]
