@@ -3,7 +3,7 @@ Configuration management using pydantic-settings.
 
 Loads configuration from environment variables with proper validation and type hints.
 """
-from typing import List
+from typing import List, Optional
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
