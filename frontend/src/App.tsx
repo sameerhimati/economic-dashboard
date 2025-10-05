@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { Dashboard } from '@/pages/Dashboard'
+import { Newsletters } from '@/pages/Newsletters'
 import { Login } from '@/pages/Login'
 import { Register } from '@/pages/Register'
 
@@ -30,6 +31,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/newsletters"
+          element={
+            <ProtectedRoute>
+              <Newsletters />
             </ProtectedRoute>
           }
         />
