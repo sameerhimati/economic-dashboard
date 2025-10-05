@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { NewsletterCard } from './NewsletterCard'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
@@ -11,7 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Card, CardContent } from '@/components/ui/card'
-import { Search, AlertCircle, RefreshCw, Inbox } from 'lucide-react'
+import { Search, AlertCircle, RefreshCw, Inbox, Settings } from 'lucide-react'
 import { newsletterService } from '@/services/newsletterService'
 import type { Newsletter } from '@/types/newsletter'
 import { toast } from 'sonner'
@@ -25,6 +26,7 @@ export function NewsletterFeed({
   initialLimit = 20,
   showFilters = true
 }: NewsletterFeedProps) {
+  const navigate = useNavigate()
   const [newsletters, setNewsletters] = useState<Newsletter[]>([])
   const [categories, setCategories] = useState<string[]>(['all'])
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
@@ -253,7 +255,7 @@ export function NewsletterFeed({
                       <li className="leading-relaxed">
                         <span className="font-medium text-foreground">Configure Email Settings</span>
                         <ul className="list-disc list-inside ml-6 mt-1 space-y-1">
-                          <li>Go to Settings → Email Configuration (coming soon)</li>
+                          <li>Go to Settings → Email Configuration</li>
                           <li>Enter your Gmail address and app password</li>
                           <li>Save configuration</li>
                         </ul>
@@ -270,6 +272,12 @@ export function NewsletterFeed({
                       <p>✨ <strong>Currently supported:</strong> Bisnow (Houston, Austin, National Deal Brief, and more)</p>
                       <p>🚀 <strong>Coming soon:</strong> CoStar, Commercial Observer, and custom RSS feeds</p>
                     </div>
+                  </div>
+                  <div className="flex justify-center">
+                    <Button onClick={() => navigate('/settings')} size="lg">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Go to Settings
+                    </Button>
                   </div>
                 </div>
               )}

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { Dashboard } from '@/pages/Dashboard'
 import { Newsletters } from '@/pages/Newsletters'
+import { Settings } from '@/pages/Settings'
 import { Login } from '@/pages/Login'
 import { Register } from '@/pages/Register'
 
@@ -39,6 +40,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Newsletters />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
             </ProtectedRoute>
           }
         />

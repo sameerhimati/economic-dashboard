@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, TrendingUp, Newspaper, Calendar, BookOpen } from 'lucide-react'
+import { LayoutDashboard, TrendingUp, Newspaper, Calendar, BookOpen, Settings } from 'lucide-react'
 import { useLocation, Link } from 'react-router-dom'
 
 interface NavItem {
@@ -15,6 +15,7 @@ const navItems: NavItem[] = [
   { icon: Newspaper, label: 'Breaking News', href: '#breaking' },
   { icon: Calendar, label: 'Weekly Summary', href: '#weekly' },
   { icon: BookOpen, label: 'Newsstand', href: '/newsletters', isRoute: true },
+  { icon: Settings, label: 'Settings', href: '/settings', isRoute: true },
 ]
 
 export function Navigation() {

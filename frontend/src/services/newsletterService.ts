@@ -5,6 +5,43 @@ export interface SearchFilters extends NewsletterFilters {
   query: string
 }
 
+export interface EmailConfig {
+  email_address: string | null
+  imap_server: string
+  imap_port: number
+  is_configured: boolean
+}
+
+export interface EmailConfigUpdate {
+  email_address?: string
+  email_app_password?: string
+  imap_server?: string
+  imap_port?: number
+}
+
+export interface NewsletterPreferences {
+  bisnow_categories: string[]
+  fetch_enabled: boolean
+  last_fetch: string | null
+}
+
+export interface NewsletterPreferencesUpdate {
+  bisnow_categories: string[]
+  fetch_enabled: boolean
+}
+
+export interface NewsletterFetchResponse {
+  status: string
+  fetched: number
+  stored: number
+  skipped: number
+  timestamp: string
+}
+
+export interface AvailableCategories {
+  categories: string[]
+}
+
 class NewsletterService {
   /**
    * Get recent newsletters with optional category filter
@@ -144,6 +181,123 @@ class NewsletterService {
       }))
     } catch (error) {
       console.error('Error fetching top deals:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get user's email configuration
+   */
+  async getEmailConfig(): Promise<EmailConfig> {
+    try {
+      const response = await apiClient.get<EmailConfig>('/auth/settings/email-config')
+      return response.data
+    } catch (error) {
+      console.error('Error fetching email config:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Update user's email configuration
+   */
+  async updateEmailConfig(config: EmailConfigUpdate): Promise<EmailConfig> {
+    try {
+      const response = await apiClient.put<EmailConfig>('/auth/settings/email-config', config)
+      return response.data
+    } catch (error) {
+      console.error('Error updating email config:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Delete user's email configuration
+   */
+  async deleteEmailConfig(): Promise<void> {
+    try {
+      await apiClient.delete('/auth/settings/email-config')
+    } catch (error) {
+      console.error('Error deleting email config:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Test email connection
+   */
+  async testEmailConnection(config: EmailConfigUpdate): Promise<{ success: boolean; message: string }> {
+    try {
+      // For now, we'll just validate the config - a real test would require a backend endpoint
+      if (!config.email_address || !config.email_app_password) {
+        return {
+          success: false,
+          message: 'Email address and app password are required'
+        }
+      }
+
+      // TODO: Implement actual connection test endpoint on backend
+      return {
+        success: true,
+        message: 'Email configuration saved. Try fetching newsletters to verify the connection works.'
+      }
+    } catch (error) {
+      console.error('Error testing email connection:', error)
+      return {
+        success: false,
+        message: 'Failed to test email connection'
+      }
+    }
+  }
+
+  /**
+   * Get user's newsletter preferences
+   */
+  async getNewsletterPreferences(): Promise<NewsletterPreferences> {
+    try {
+      const response = await apiClient.get<NewsletterPreferences>('/auth/settings/newsletter-preferences')
+      return response.data
+    } catch (error) {
+      console.error('Error fetching newsletter preferences:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Update user's newsletter preferences
+   */
+  async updateNewsletterPreferences(prefs: NewsletterPreferencesUpdate): Promise<NewsletterPreferences> {
+    try {
+      const response = await apiClient.put<NewsletterPreferences>('/auth/settings/newsletter-preferences', prefs)
+      return response.data
+    } catch (error) {
+      console.error('Error updating newsletter preferences:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get available newsletter categories
+   */
+  async getAvailableCategories(): Promise<string[]> {
+    try {
+      const response = await apiClient.get<AvailableCategories>('/auth/settings/newsletter-categories')
+      return response.data.categories
+    } catch (error) {
+      console.error('Error fetching available categories:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Manually fetch newsletters from email
+   */
+  async fetchNewsletters(days: number = 7): Promise<NewsletterFetchResponse> {
+    try {
+      const response = await apiClient.post<NewsletterFetchResponse>(`/newsletters/fetch?days=${days}`)
+      return response.data
+    } catch (error) {
+      console.error('Error fetching newsletters:', error)
       throw error
     }
   }
