@@ -87,18 +87,6 @@ class ArticleBookmarkResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class NewsletterBookmarkResponse(BaseModel):
-    """Schema for newsletter in bookmark list context (deprecated - use ArticleBookmarkResponse)."""
-
-    id: UUID = Field(..., description="Newsletter unique ID")
-    source: str = Field(..., description="Email sender")
-    category: str = Field(..., description="Newsletter category")
-    subject: str = Field(..., description="Email subject")
-    received_date: datetime = Field(..., description="When email was received")
-    created_at: datetime = Field(..., description="When record was created")
-    bookmarked_at: Optional[datetime] = Field(None, description="When newsletter was added to this list")
-
-    model_config = ConfigDict(from_attributes=True)
 
 
 class BookmarkListArticlesResponse(BaseModel):
@@ -113,16 +101,6 @@ class BookmarkListArticlesResponse(BaseModel):
     page_size: int = Field(10, description="Number of items per page")
 
 
-class BookmarkListNewslettersResponse(BaseModel):
-    """Schema for newsletters in a bookmark list (deprecated - use BookmarkListArticlesResponse)."""
-
-    bookmark_list_id: UUID = Field(..., description="Bookmark list ID")
-    bookmark_list_name: str = Field(..., description="Bookmark list name")
-    newsletters: List[NewsletterBookmarkResponse] = Field(..., description="Newsletters in this list")
-    count: int = Field(..., description="Number of newsletters in response")
-    total_count: int = Field(..., description="Total newsletters in this list")
-    page: int = Field(1, description="Current page number")
-    page_size: int = Field(10, description="Number of items per page")
 
 
 class BookmarkOperationResponse(BaseModel):
@@ -132,4 +110,3 @@ class BookmarkOperationResponse(BaseModel):
     message: str = Field(..., description="Operation result message")
     bookmark_list_id: Optional[UUID] = Field(None, description="Bookmark list ID")
     article_id: Optional[UUID] = Field(None, description="Article ID")
-    newsletter_id: Optional[UUID] = Field(None, description="Newsletter ID (deprecated - use article_id)")

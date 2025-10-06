@@ -1,7 +1,7 @@
 """
 Bookmark API endpoints.
 
-Provides endpoints for managing bookmark lists and organizing newsletters.
+Provides endpoints for managing bookmark lists and organizing articles.
 """
 import logging
 from typing import Optional
@@ -16,8 +16,6 @@ from app.core.database import get_db
 from app.models.bookmark_list import BookmarkList
 from app.models.article import Article
 from app.models.article_bookmark import ArticleBookmark
-from app.models.newsletter import Newsletter
-from app.models.newsletter_bookmark import NewsletterBookmark
 from app.models.user import User
 from app.schemas.bookmark import (
     BookmarkListCreate,
@@ -27,8 +25,6 @@ from app.schemas.bookmark import (
     BookmarkListsResponse,
     ArticleBookmarkResponse,
     BookmarkListArticlesResponse,
-    NewsletterBookmarkResponse,
-    BookmarkListNewslettersResponse,
     BookmarkOperationResponse,
 )
 from app.api.deps import get_current_active_user
@@ -45,7 +41,7 @@ router = APIRouter(prefix="/bookmarks", tags=["Bookmarks"])
     response_model=BookmarkListsResponse,
     status_code=status.HTTP_200_OK,
     summary="Get user's bookmark lists",
-    description="Retrieve all bookmark lists for the authenticated user with newsletter counts"
+    description="Retrieve all bookmark lists for the authenticated user with article counts"
 )
 async def get_bookmark_lists(
     db: AsyncSession = Depends(get_db),
@@ -55,7 +51,7 @@ async def get_bookmark_lists(
     Get all bookmark lists for the authenticated user.
 
     Returns all bookmark lists owned by the user, sorted by creation date (newest first).
-    Each list includes the count of newsletters it contains.
+    Each list includes the count of articles it contains.
 
     Args:
         db: Database session
@@ -208,7 +204,7 @@ async def create_bookmark_list(
             id=new_list.id,
             user_id=new_list.user_id,
             name=new_list.name,
-            newsletter_count=0,  # New list has no newsletters
+            article_count=0,  # New list has no articles
             created_at=new_list.created_at,
             updated_at=new_list.updated_at,
         )
@@ -309,12 +305,12 @@ async def update_bookmark_list(
         await db.commit()
         await db.refresh(bookmark_list)
 
-        # Get newsletter count
-        count_stmt = select(func.count(NewsletterBookmark.newsletter_id)).where(
-            NewsletterBookmark.bookmark_list_id == list_id
+        # Get article count
+        count_stmt = select(func.count(ArticleBookmark.article_id)).where(
+            ArticleBookmark.bookmark_list_id == list_id
         )
         count_result = await db.execute(count_stmt)
-        newsletter_count = count_result.scalar() or 0
+        article_count = count_result.scalar() or 0
 
         logger.info(
             f"Successfully updated bookmark list {list_id} for user {current_user.id}: "
@@ -325,7 +321,7 @@ async def update_bookmark_list(
             id=bookmark_list.id,
             user_id=bookmark_list.user_id,
             name=bookmark_list.name,
-            newsletter_count=newsletter_count,
+            article_count=article_count,
             created_at=bookmark_list.created_at,
             updated_at=bookmark_list.updated_at,
         )
@@ -349,7 +345,7 @@ async def update_bookmark_list(
     "/lists/{list_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete bookmark list",
-    description="Delete a bookmark list owned by the authenticated user (CASCADE deletes newsletter associations)"
+    description="Delete a bookmark list owned by the authenticated user (CASCADE deletes article associations)"
 )
 async def delete_bookmark_list(
     list_id: UUID,
@@ -360,7 +356,7 @@ async def delete_bookmark_list(
     Delete a bookmark list.
 
     Only the list owner can delete it. CASCADE delete will automatically remove
-    all article_bookmarks and newsletter_bookmarks entries associated with this list.
+    all article_bookmarks entries associated with this list.
 
     Args:
         list_id: Bookmark list UUID
@@ -392,7 +388,7 @@ async def delete_bookmark_list(
                 detail=f"Bookmark list not found: {list_id}"
             )
 
-        # Delete the list (CASCADE will handle newsletter_bookmarks)
+        # Delete the list (CASCADE will handle article_bookmarks)
         await db.delete(bookmark_list)
         await db.commit()
 
@@ -416,374 +412,8 @@ async def delete_bookmark_list(
         )
 
 
-@router.post(
-    "/lists/{list_id}/newsletters/{newsletter_id}",
-    response_model=BookmarkOperationResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Add newsletter to bookmark list",
-    description="Add a newsletter to a bookmark list (both must belong to authenticated user)"
-)
-async def add_newsletter_to_list(
-    list_id: UUID,
-    newsletter_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
-) -> BookmarkOperationResponse:
-    """
-    Add a newsletter to a bookmark list.
-
-    Both the bookmark list and newsletter must belong to the authenticated user.
-    If the newsletter is already in the list, returns success (idempotent operation).
-
-    Args:
-        list_id: Bookmark list UUID
-        newsletter_id: Newsletter UUID
-        db: Database session
-        current_user: Authenticated user (REQUIRED)
-
-    Returns:
-        BookmarkOperationResponse: Operation result
-
-    Raises:
-        HTTPException 404: If list or newsletter not found or doesn't belong to user
-    """
-    logger.info(
-        f"Adding newsletter {newsletter_id} to bookmark list {list_id} "
-        f"for user {current_user.id}"
-    )
-
-    try:
-        # Verify bookmark list exists and belongs to user
-        list_stmt = select(BookmarkList).where(
-            and_(
-                BookmarkList.id == list_id,
-                BookmarkList.user_id == current_user.id
-            )
-        )
-        list_result = await db.execute(list_stmt)
-        bookmark_list = list_result.scalar_one_or_none()
-
-        if not bookmark_list:
-            logger.warning(
-                f"Bookmark list {list_id} not found for user {current_user.id}"
-            )
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Bookmark list not found: {list_id}"
-            )
-
-        # Verify newsletter exists and belongs to user
-        newsletter_stmt = select(Newsletter).where(
-            and_(
-                Newsletter.id == newsletter_id,
-                Newsletter.user_id == current_user.id
-            )
-        )
-        newsletter_result = await db.execute(newsletter_stmt)
-        newsletter = newsletter_result.scalar_one_or_none()
-
-        if not newsletter:
-            logger.warning(
-                f"Newsletter {newsletter_id} not found for user {current_user.id}"
-            )
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Newsletter not found: {newsletter_id}"
-            )
-
-        # Check if association already exists
-        existing_stmt = select(NewsletterBookmark).where(
-            and_(
-                NewsletterBookmark.bookmark_list_id == list_id,
-                NewsletterBookmark.newsletter_id == newsletter_id
-            )
-        )
-        existing_result = await db.execute(existing_stmt)
-        existing_bookmark = existing_result.scalar_one_or_none()
-
-        if existing_bookmark:
-            logger.info(
-                f"Newsletter {newsletter_id} already in bookmark list {list_id} "
-                f"for user {current_user.id} - returning success"
-            )
-            return BookmarkOperationResponse(
-                success=True,
-                message="Newsletter already in bookmark list",
-                bookmark_list_id=list_id,
-                newsletter_id=newsletter_id
-            )
-
-        # Create new association
-        new_bookmark = NewsletterBookmark(
-            bookmark_list_id=list_id,
-            newsletter_id=newsletter_id
-        )
-
-        db.add(new_bookmark)
-        await db.commit()
-
-        logger.info(
-            f"Successfully added newsletter {newsletter_id} to bookmark list "
-            f"'{bookmark_list.name}' (id={list_id}) for user {current_user.id}"
-        )
-
-        return BookmarkOperationResponse(
-            success=True,
-            message=f"Newsletter added to bookmark list '{bookmark_list.name}'",
-            bookmark_list_id=list_id,
-            newsletter_id=newsletter_id
-        )
-
-    except HTTPException:
-        await db.rollback()
-        raise
-    except Exception as e:
-        await db.rollback()
-        logger.error(
-            f"Error adding newsletter {newsletter_id} to bookmark list {list_id} "
-            f"for user {current_user.id}: {str(e)}",
-            exc_info=True
-        )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error adding newsletter to bookmark list"
-        )
-
-
-@router.delete(
-    "/lists/{list_id}/newsletters/{newsletter_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    summary="Remove newsletter from bookmark list",
-    description="Remove a newsletter from a bookmark list (list must belong to authenticated user)"
-)
-async def remove_newsletter_from_list(
-    list_id: UUID,
-    newsletter_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
-) -> None:
-    """
-    Remove a newsletter from a bookmark list.
-
-    The bookmark list must belong to the authenticated user.
-
-    Args:
-        list_id: Bookmark list UUID
-        newsletter_id: Newsletter UUID
-        db: Database session
-        current_user: Authenticated user (REQUIRED)
-
-    Raises:
-        HTTPException 404: If list not found or association doesn't exist
-    """
-    logger.info(
-        f"Removing newsletter {newsletter_id} from bookmark list {list_id} "
-        f"for user {current_user.id}"
-    )
-
-    try:
-        # Verify bookmark list exists and belongs to user
-        list_stmt = select(BookmarkList).where(
-            and_(
-                BookmarkList.id == list_id,
-                BookmarkList.user_id == current_user.id
-            )
-        )
-        list_result = await db.execute(list_stmt)
-        bookmark_list = list_result.scalar_one_or_none()
-
-        if not bookmark_list:
-            logger.warning(
-                f"Bookmark list {list_id} not found for user {current_user.id}"
-            )
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Bookmark list not found: {list_id}"
-            )
-
-        # Check if association exists
-        existing_stmt = select(NewsletterBookmark).where(
-            and_(
-                NewsletterBookmark.bookmark_list_id == list_id,
-                NewsletterBookmark.newsletter_id == newsletter_id
-            )
-        )
-        existing_result = await db.execute(existing_stmt)
-        existing_bookmark = existing_result.scalar_one_or_none()
-
-        if not existing_bookmark:
-            logger.warning(
-                f"Newsletter {newsletter_id} not found in bookmark list {list_id} "
-                f"for user {current_user.id}"
-            )
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Newsletter not found in bookmark list"
-            )
-
-        # Delete the association
-        delete_stmt = delete(NewsletterBookmark).where(
-            and_(
-                NewsletterBookmark.bookmark_list_id == list_id,
-                NewsletterBookmark.newsletter_id == newsletter_id
-            )
-        )
-        await db.execute(delete_stmt)
-        await db.commit()
-
-        logger.info(
-            f"Successfully removed newsletter {newsletter_id} from bookmark list "
-            f"'{bookmark_list.name}' (id={list_id}) for user {current_user.id}"
-        )
-
-    except HTTPException:
-        await db.rollback()
-        raise
-    except Exception as e:
-        await db.rollback()
-        logger.error(
-            f"Error removing newsletter {newsletter_id} from bookmark list {list_id} "
-            f"for user {current_user.id}: {str(e)}",
-            exc_info=True
-        )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error removing newsletter from bookmark list"
-        )
-
-
-@router.get(
-    "/lists/{list_id}/newsletters",
-    response_model=BookmarkListNewslettersResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Get newsletters in a bookmark list",
-    description="Retrieve all newsletters in a bookmark list with pagination (list must belong to authenticated user)"
-)
-async def get_list_newsletters(
-    list_id: UUID,
-    page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(10, ge=1, le=100, description="Items per page"),
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
-) -> BookmarkListNewslettersResponse:
-    """
-    Get all newsletters in a bookmark list.
-
-    Returns paginated newsletters sorted by date added (newest first).
-    The bookmark list must belong to the authenticated user.
-
-    Args:
-        list_id: Bookmark list UUID
-        page: Page number (starts at 1)
-        page_size: Number of items per page (1-100)
-        db: Database session
-        current_user: Authenticated user (REQUIRED)
-
-    Returns:
-        BookmarkListNewslettersResponse: Newsletters in the list with pagination
-
-    Raises:
-        HTTPException 404: If list not found or doesn't belong to user
-    """
-    logger.info(
-        f"Fetching newsletters for bookmark list {list_id}, "
-        f"page={page}, page_size={page_size}, user={current_user.id}"
-    )
-
-    try:
-        # Verify bookmark list exists and belongs to user
-        list_stmt = select(BookmarkList).where(
-            and_(
-                BookmarkList.id == list_id,
-                BookmarkList.user_id == current_user.id
-            )
-        )
-        list_result = await db.execute(list_stmt)
-        bookmark_list = list_result.scalar_one_or_none()
-
-        if not bookmark_list:
-            logger.warning(
-                f"Bookmark list {list_id} not found for user {current_user.id}"
-            )
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Bookmark list not found: {list_id}"
-            )
-
-        # Get total count of newsletters in this list
-        count_stmt = select(func.count(NewsletterBookmark.newsletter_id)).where(
-            NewsletterBookmark.bookmark_list_id == list_id
-        )
-        count_result = await db.execute(count_stmt)
-        total_count = count_result.scalar() or 0
-
-        # Query newsletters in this list with pagination
-        offset = (page - 1) * page_size
-
-        newsletters_stmt = (
-            select(Newsletter, NewsletterBookmark.created_at)
-            .join(
-                NewsletterBookmark,
-                Newsletter.id == NewsletterBookmark.newsletter_id
-            )
-            .where(NewsletterBookmark.bookmark_list_id == list_id)
-            .order_by(desc(NewsletterBookmark.created_at))  # Sort by date added
-            .offset(offset)
-            .limit(page_size)
-        )
-
-        newsletters_result = await db.execute(newsletters_stmt)
-        rows = newsletters_result.all()
-
-        # Build newsletter response
-        newsletters = []
-        for row in rows:
-            newsletter = row[0]
-            bookmarked_at = row[1]
-
-            newsletters.append(
-                NewsletterBookmarkResponse(
-                    id=newsletter.id,
-                    source=newsletter.source,
-                    category=newsletter.category,
-                    subject=newsletter.subject,
-                    received_date=newsletter.received_date,
-                    created_at=newsletter.created_at,
-                    bookmarked_at=bookmarked_at,
-                )
-            )
-
-        logger.info(
-            f"Found {len(newsletters)} newsletters in bookmark list '{bookmark_list.name}' "
-            f"(total: {total_count}) for user {current_user.id}"
-        )
-
-        return BookmarkListNewslettersResponse(
-            bookmark_list_id=list_id,
-            bookmark_list_name=bookmark_list.name,
-            newsletters=newsletters,
-            count=len(newsletters),
-            total_count=total_count,
-            page=page,
-            page_size=page_size
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(
-            f"Error fetching newsletters for bookmark list {list_id} "
-            f"for user {current_user.id}: {str(e)}",
-            exc_info=True
-        )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error fetching newsletters from bookmark list"
-        )
-
-
 # ===== ARTICLE BOOKMARK ENDPOINTS =====
-# These are the new primary endpoints for bookmarking individual articles
+# These are the primary endpoints for bookmarking individual articles
 
 
 @router.post(

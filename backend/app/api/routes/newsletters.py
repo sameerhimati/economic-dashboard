@@ -14,7 +14,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models.newsletter import Newsletter
-from app.models.newsletter_bookmark import NewsletterBookmark
 from app.models.user import User
 from app.schemas.newsletter import (
     NewsletterResponse,
