@@ -4,6 +4,7 @@ FastAPI application entry point.
 Main application setup with middleware, routers, and event handlers.
 """
 import logging
+import sys
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -28,10 +29,12 @@ from app.api.routes import (
     admin_router,
 )
 
-# Configure logging
+# Configure logging to stdout (not stderr) so Railway shows INFO logs in white, not red
 logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL),
     format=settings.LOG_FORMAT,
+    stream=sys.stdout,  # Explicitly use stdout instead of default stderr
+    force=True,  # Override any existing configuration
 )
 
 logger = logging.getLogger(__name__)
