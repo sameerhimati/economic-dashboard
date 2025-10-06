@@ -14,6 +14,8 @@ from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.models.bookmark_list import BookmarkList
+from app.models.article import Article
+from app.models.article_bookmark import ArticleBookmark
 from app.models.newsletter import Newsletter
 from app.models.newsletter_bookmark import NewsletterBookmark
 from app.models.user import User
@@ -23,6 +25,8 @@ from app.schemas.bookmark import (
     BookmarkListResponse,
     BookmarkListSummary,
     BookmarkListsResponse,
+    ArticleBookmarkResponse,
+    BookmarkListArticlesResponse,
     NewsletterBookmarkResponse,
     BookmarkListNewslettersResponse,
     BookmarkOperationResponse,
@@ -63,16 +67,16 @@ async def get_bookmark_lists(
     logger.info(f"Fetching bookmark lists for user {current_user.id}")
 
     try:
-        # Query bookmark lists for this user with newsletter count
-        # Use a subquery to count newsletters in each list
+        # Query bookmark lists for this user with article count
+        # Use a subquery to count articles in each list
         stmt = (
             select(
                 BookmarkList,
-                func.count(NewsletterBookmark.newsletter_id).label('newsletter_count')
+                func.count(ArticleBookmark.article_id).label('article_count')
             )
             .outerjoin(
-                NewsletterBookmark,
-                BookmarkList.id == NewsletterBookmark.bookmark_list_id
+                ArticleBookmark,
+                BookmarkList.id == ArticleBookmark.bookmark_list_id
             )
             .where(BookmarkList.user_id == current_user.id)
             .group_by(BookmarkList.id)
@@ -86,13 +90,13 @@ async def get_bookmark_lists(
         bookmark_lists = []
         for row in rows:
             bookmark_list = row[0]
-            newsletter_count = row[1]
+            article_count = row[1]
 
             bookmark_lists.append(
                 BookmarkListSummary(
                     id=bookmark_list.id,
                     name=bookmark_list.name,
-                    newsletter_count=newsletter_count,
+                    article_count=article_count,
                     created_at=bookmark_list.created_at,
                     updated_at=bookmark_list.updated_at,
                 )
@@ -356,7 +360,7 @@ async def delete_bookmark_list(
     Delete a bookmark list.
 
     Only the list owner can delete it. CASCADE delete will automatically remove
-    all newsletter_bookmarks entries associated with this list.
+    all article_bookmarks and newsletter_bookmarks entries associated with this list.
 
     Args:
         list_id: Bookmark list UUID
@@ -775,4 +779,375 @@ async def get_list_newsletters(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error fetching newsletters from bookmark list"
+        )
+
+
+# ===== ARTICLE BOOKMARK ENDPOINTS =====
+# These are the new primary endpoints for bookmarking individual articles
+
+
+@router.post(
+    "/lists/{list_id}/articles/{article_id}",
+    response_model=BookmarkOperationResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Add article to bookmark list",
+    description="Add an article to a bookmark list (both must belong to authenticated user)"
+)
+async def add_article_to_list(
+    list_id: UUID,
+    article_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> BookmarkOperationResponse:
+    """
+    Add an article to a bookmark list.
+
+    Both the bookmark list and article must belong to the authenticated user.
+    If the article is already in the list, returns success (idempotent operation).
+
+    Args:
+        list_id: Bookmark list UUID
+        article_id: Article UUID
+        db: Database session
+        current_user: Authenticated user (REQUIRED)
+
+    Returns:
+        BookmarkOperationResponse: Operation result
+
+    Raises:
+        HTTPException 404: If list or article not found or doesn't belong to user
+    """
+    logger.info(
+        f"Adding article {article_id} to bookmark list {list_id} "
+        f"for user {current_user.id}"
+    )
+
+    try:
+        # Verify bookmark list exists and belongs to user
+        list_stmt = select(BookmarkList).where(
+            and_(
+                BookmarkList.id == list_id,
+                BookmarkList.user_id == current_user.id
+            )
+        )
+        list_result = await db.execute(list_stmt)
+        bookmark_list = list_result.scalar_one_or_none()
+
+        if not bookmark_list:
+            logger.warning(
+                f"Bookmark list {list_id} not found for user {current_user.id}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Bookmark list not found: {list_id}"
+            )
+
+        # Verify article exists and belongs to user
+        article_stmt = select(Article).where(
+            and_(
+                Article.id == article_id,
+                Article.user_id == current_user.id
+            )
+        )
+        article_result = await db.execute(article_stmt)
+        article = article_result.scalar_one_or_none()
+
+        if not article:
+            logger.warning(
+                f"Article {article_id} not found for user {current_user.id}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Article not found: {article_id}"
+            )
+
+        # Check if association already exists
+        existing_stmt = select(ArticleBookmark).where(
+            and_(
+                ArticleBookmark.bookmark_list_id == list_id,
+                ArticleBookmark.article_id == article_id
+            )
+        )
+        existing_result = await db.execute(existing_stmt)
+        existing_bookmark = existing_result.scalar_one_or_none()
+
+        if existing_bookmark:
+            logger.info(
+                f"Article {article_id} already in bookmark list {list_id} "
+                f"for user {current_user.id} - returning success"
+            )
+            return BookmarkOperationResponse(
+                success=True,
+                message="Article already in bookmark list",
+                bookmark_list_id=list_id,
+                article_id=article_id
+            )
+
+        # Create new association
+        new_bookmark = ArticleBookmark(
+            bookmark_list_id=list_id,
+            article_id=article_id
+        )
+
+        db.add(new_bookmark)
+        await db.commit()
+
+        logger.info(
+            f"Successfully added article {article_id} to bookmark list "
+            f"'{bookmark_list.name}' (id={list_id}) for user {current_user.id}"
+        )
+
+        return BookmarkOperationResponse(
+            success=True,
+            message=f"Article added to bookmark list '{bookmark_list.name}'",
+            bookmark_list_id=list_id,
+            article_id=article_id
+        )
+
+    except HTTPException:
+        await db.rollback()
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(
+            f"Error adding article {article_id} to bookmark list {list_id} "
+            f"for user {current_user.id}: {str(e)}",
+            exc_info=True
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error adding article to bookmark list"
+        )
+
+
+@router.delete(
+    "/lists/{list_id}/articles/{article_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Remove article from bookmark list",
+    description="Remove an article from a bookmark list (list must belong to authenticated user)"
+)
+async def remove_article_from_list(
+    list_id: UUID,
+    article_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> None:
+    """
+    Remove an article from a bookmark list.
+
+    The bookmark list must belong to the authenticated user.
+
+    Args:
+        list_id: Bookmark list UUID
+        article_id: Article UUID
+        db: Database session
+        current_user: Authenticated user (REQUIRED)
+
+    Raises:
+        HTTPException 404: If list not found or association doesn't exist
+    """
+    logger.info(
+        f"Removing article {article_id} from bookmark list {list_id} "
+        f"for user {current_user.id}"
+    )
+
+    try:
+        # Verify bookmark list exists and belongs to user
+        list_stmt = select(BookmarkList).where(
+            and_(
+                BookmarkList.id == list_id,
+                BookmarkList.user_id == current_user.id
+            )
+        )
+        list_result = await db.execute(list_stmt)
+        bookmark_list = list_result.scalar_one_or_none()
+
+        if not bookmark_list:
+            logger.warning(
+                f"Bookmark list {list_id} not found for user {current_user.id}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Bookmark list not found: {list_id}"
+            )
+
+        # Check if association exists
+        existing_stmt = select(ArticleBookmark).where(
+            and_(
+                ArticleBookmark.bookmark_list_id == list_id,
+                ArticleBookmark.article_id == article_id
+            )
+        )
+        existing_result = await db.execute(existing_stmt)
+        existing_bookmark = existing_result.scalar_one_or_none()
+
+        if not existing_bookmark:
+            logger.warning(
+                f"Article {article_id} not found in bookmark list {list_id} "
+                f"for user {current_user.id}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Article not found in bookmark list"
+            )
+
+        # Delete the association
+        delete_stmt = delete(ArticleBookmark).where(
+            and_(
+                ArticleBookmark.bookmark_list_id == list_id,
+                ArticleBookmark.article_id == article_id
+            )
+        )
+        await db.execute(delete_stmt)
+        await db.commit()
+
+        logger.info(
+            f"Successfully removed article {article_id} from bookmark list "
+            f"'{bookmark_list.name}' (id={list_id}) for user {current_user.id}"
+        )
+
+    except HTTPException:
+        await db.rollback()
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(
+            f"Error removing article {article_id} from bookmark list {list_id} "
+            f"for user {current_user.id}: {str(e)}",
+            exc_info=True
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error removing article from bookmark list"
+        )
+
+
+@router.get(
+    "/lists/{list_id}/articles",
+    response_model=BookmarkListArticlesResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get articles in a bookmark list",
+    description="Retrieve all articles in a bookmark list with pagination (list must belong to authenticated user)"
+)
+async def get_list_articles(
+    list_id: UUID,
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(10, ge=1, le=100, description="Items per page"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> BookmarkListArticlesResponse:
+    """
+    Get all articles in a bookmark list.
+
+    Returns paginated articles sorted by date added (newest first).
+    The bookmark list must belong to the authenticated user.
+
+    Args:
+        list_id: Bookmark list UUID
+        page: Page number (starts at 1)
+        page_size: Number of items per page (1-100)
+        db: Database session
+        current_user: Authenticated user (REQUIRED)
+
+    Returns:
+        BookmarkListArticlesResponse: Articles in the list with pagination
+
+    Raises:
+        HTTPException 404: If list not found or doesn't belong to user
+    """
+    logger.info(
+        f"Fetching articles for bookmark list {list_id}, "
+        f"page={page}, page_size={page_size}, user={current_user.id}"
+    )
+
+    try:
+        # Verify bookmark list exists and belongs to user
+        list_stmt = select(BookmarkList).where(
+            and_(
+                BookmarkList.id == list_id,
+                BookmarkList.user_id == current_user.id
+            )
+        )
+        list_result = await db.execute(list_stmt)
+        bookmark_list = list_result.scalar_one_or_none()
+
+        if not bookmark_list:
+            logger.warning(
+                f"Bookmark list {list_id} not found for user {current_user.id}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Bookmark list not found: {list_id}"
+            )
+
+        # Get total count of articles in this list
+        count_stmt = select(func.count(ArticleBookmark.article_id)).where(
+            ArticleBookmark.bookmark_list_id == list_id
+        )
+        count_result = await db.execute(count_stmt)
+        total_count = count_result.scalar() or 0
+
+        # Query articles in this list with pagination
+        offset = (page - 1) * page_size
+
+        articles_stmt = (
+            select(Article, ArticleBookmark.created_at)
+            .join(
+                ArticleBookmark,
+                Article.id == ArticleBookmark.article_id
+            )
+            .where(ArticleBookmark.bookmark_list_id == list_id)
+            .order_by(desc(ArticleBookmark.created_at))  # Sort by date added
+            .offset(offset)
+            .limit(page_size)
+        )
+
+        articles_result = await db.execute(articles_stmt)
+        rows = articles_result.all()
+
+        # Build article response
+        articles = []
+        for row in rows:
+            article = row[0]
+            bookmarked_at = row[1]
+
+            articles.append(
+                ArticleBookmarkResponse(
+                    id=article.id,
+                    headline=article.headline,
+                    url=article.url,
+                    category=article.category,
+                    received_date=article.received_date,
+                    position=article.position,
+                    created_at=article.created_at,
+                    bookmarked_at=bookmarked_at,
+                )
+            )
+
+        logger.info(
+            f"Found {len(articles)} articles in bookmark list '{bookmark_list.name}' "
+            f"(total: {total_count}) for user {current_user.id}"
+        )
+
+        return BookmarkListArticlesResponse(
+            bookmark_list_id=list_id,
+            bookmark_list_name=bookmark_list.name,
+            articles=articles,
+            count=len(articles),
+            total_count=total_count,
+            page=page,
+            page_size=page_size
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Error fetching articles for bookmark list {list_id} "
+            f"for user {current_user.id}: {str(e)}",
+            exc_info=True
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error fetching articles from bookmark list"
         )

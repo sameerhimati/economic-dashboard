@@ -2,44 +2,44 @@ import { useState, useEffect } from 'react'
 import { Layout } from '@/components/layout/Layout'
 import { PageTransition } from '@/components/ui/page-transition'
 import { BookmarkListManager } from '@/components/bookmarks/BookmarkListManager'
-import { NewsletterCard } from '@/components/newsletters/NewsletterCard'
+import { ArticleList } from '@/components/articles'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { bookmarkService, type BookmarkList, type NewsletterInBookmark } from '@/services/bookmarkService'
+import { bookmarkService, type BookmarkList, type ArticleInBookmark } from '@/services/bookmarkService'
 import { toast } from 'sonner'
 import { Bookmark, Loader2, FolderOpen, Inbox } from 'lucide-react'
 
 export function Bookmarks() {
   const [selectedListId, setSelectedListId] = useState<string | null>(null)
   const [selectedList, setSelectedList] = useState<BookmarkList | null>(null)
-  const [newsletters, setNewsletters] = useState<NewsletterInBookmark[]>([])
+  const [articles, setArticles] = useState<ArticleInBookmark[]>([])
   const [loading, setLoading] = useState(false)
   const [listsKey, setListsKey] = useState(0)
 
   useEffect(() => {
     if (selectedListId) {
-      loadNewsletters(selectedListId)
+      loadArticles(selectedListId)
     } else {
-      setNewsletters([])
+      setArticles([])
       setSelectedList(null)
     }
   }, [selectedListId])
 
-  const loadNewsletters = async (listId: string) => {
+  const loadArticles = async (listId: string) => {
     try {
       setLoading(true)
       const [data, lists] = await Promise.all([
-        bookmarkService.getNewslettersInList(listId),
+        bookmarkService.getArticlesInList(listId),
         bookmarkService.getLists()
       ])
 
-      setNewsletters(data)
+      setArticles(data)
 
       // Find and set the selected list details
       const list = lists.find(l => l.id === listId)
       setSelectedList(list || null)
     } catch (error: any) {
-      console.error('Failed to load newsletters:', error)
-      toast.error(error.message || 'Failed to load newsletters')
+      console.error('Failed to load articles:', error)
+      toast.error(error.message || 'Failed to load articles')
 
       // If list not found, deselect it
       if (error.message?.includes('not found')) {
@@ -66,7 +66,7 @@ export function Bookmarks() {
             <div>
               <h1 className="text-4xl font-bold tracking-tight">Bookmarks</h1>
               <p className="text-muted-foreground mt-1">
-                Your saved newsletters, organized in custom lists
+                Your saved articles, organized in custom lists
               </p>
             </div>
           </div>
@@ -92,7 +92,7 @@ export function Bookmarks() {
                     <FolderOpen className="h-16 w-16 text-muted-foreground/50 mb-4" />
                     <h3 className="text-xl font-semibold mb-2">No list selected</h3>
                     <p className="text-sm text-muted-foreground text-center max-w-md">
-                      Select a bookmark list from the sidebar to view your saved newsletters,
+                      Select a bookmark list from the sidebar to view your saved articles,
                       or create a new list to get started
                     </p>
                   </CardContent>
@@ -113,7 +113,7 @@ export function Bookmarks() {
                         {selectedList?.name || 'Bookmark List'}
                       </CardTitle>
                       <CardDescription>
-                        {newsletters.length} {newsletters.length === 1 ? 'newsletter' : 'newsletters'} saved
+                        {articles.length} {articles.length === 1 ? 'article' : 'articles'} saved
                         {selectedList?.updated_at && (
                           <> • Last updated {new Date(selectedList.updated_at).toLocaleDateString()}</>
                         )}
@@ -121,32 +121,23 @@ export function Bookmarks() {
                     </CardHeader>
                   </Card>
 
-                  {/* Newsletters */}
-                  {newsletters.length === 0 ? (
+                  {/* Articles */}
+                  {articles.length === 0 ? (
                     <Card>
                       <CardContent className="flex flex-col items-center justify-center py-12">
                         <Inbox className="h-12 w-12 text-muted-foreground/50 mb-3" />
-                        <h3 className="font-semibold mb-1">No newsletters saved yet</h3>
+                        <h3 className="font-semibold mb-1">No articles saved yet</h3>
                         <p className="text-sm text-muted-foreground text-center max-w-md">
-                          Click the bookmark button on any newsletter to add it to this list
+                          Click the bookmark button on any article to add it to this list
                         </p>
                       </CardContent>
                     </Card>
                   ) : (
-                    <div className="space-y-4">
-                      {newsletters.map((newsletter, index) => (
-                        <div
-                          key={newsletter.id}
-                          className="animate-slide-up"
-                          style={{ animationDelay: `${index * 50}ms` }}
-                        >
-                          <NewsletterCard
-                            newsletter={newsletter}
-                            defaultExpanded={false}
-                          />
-                        </div>
-                      ))}
-                    </div>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <ArticleList articles={articles} showBookmark={false} />
+                      </CardContent>
+                    </Card>
                   )}
                 </div>
               )}

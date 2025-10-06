@@ -15,7 +15,7 @@ import { Bookmark, Plus, Loader2, FolderPlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface BookmarkButtonProps {
-  newsletterId: string
+  articleId: string
   variant?: 'default' | 'ghost' | 'outline'
   size?: 'default' | 'sm' | 'lg' | 'icon'
   className?: string
@@ -23,7 +23,7 @@ interface BookmarkButtonProps {
 }
 
 export function BookmarkButton({
-  newsletterId,
+  articleId,
   variant = 'ghost',
   size = 'sm',
   className,
@@ -47,12 +47,12 @@ export function BookmarkButton({
       const allLists = await bookmarkService.getLists()
       setLists(allLists)
 
-      // Check which lists contain this newsletter
+      // Check which lists contain this article
       const containingListIds: string[] = []
       for (const list of allLists) {
         try {
-          const newsletters = await bookmarkService.getNewslettersInList(list.id)
-          if (newsletters.some(n => n.id === newsletterId)) {
+          const articles = await bookmarkService.getArticlesInList(list.id)
+          if (articles.some(a => a.id === articleId)) {
             containingListIds.push(list.id)
           }
         } catch (error) {
@@ -75,7 +75,7 @@ export function BookmarkButton({
 
       if (isCurrentlyBookmarked) {
         // Remove from list
-        await bookmarkService.removeNewsletterFromList(listId, newsletterId)
+        await bookmarkService.removeArticleFromList(listId, articleId)
         setBookmarkedListIds(prev => {
           const next = new Set(prev)
           next.delete(listId)
@@ -85,7 +85,7 @@ export function BookmarkButton({
         // Update the list count optimistically
         setLists(prev => prev.map(list =>
           list.id === listId
-            ? { ...list, newsletter_count: Math.max(0, list.newsletter_count - 1) }
+            ? { ...list, article_count: Math.max(0, list.article_count - 1) }
             : list
         ))
 
@@ -93,13 +93,13 @@ export function BookmarkButton({
         toast.success(`Removed from "${list?.name}"`)
       } else {
         // Add to list
-        await bookmarkService.addNewsletterToList(listId, newsletterId)
+        await bookmarkService.addArticleToList(listId, articleId)
         setBookmarkedListIds(prev => new Set(prev).add(listId))
 
         // Update the list count optimistically
         setLists(prev => prev.map(list =>
           list.id === listId
-            ? { ...list, newsletter_count: list.newsletter_count + 1 }
+            ? { ...list, article_count: list.article_count + 1 }
             : list
         ))
 
@@ -195,7 +195,7 @@ export function BookmarkButton({
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{list.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {list.newsletter_count} {list.newsletter_count === 1 ? 'item' : 'items'}
+                          {list.article_count} {list.article_count === 1 ? 'item' : 'items'}
                         </p>
                       </div>
                       {isUpdating && (

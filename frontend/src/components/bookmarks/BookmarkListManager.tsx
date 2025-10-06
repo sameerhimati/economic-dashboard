@@ -166,7 +166,7 @@ export function BookmarkListManager({
                 Bookmark Lists
               </CardTitle>
               <CardDescription className={cn(compact && "text-xs mt-1")}>
-                Organize your favorite newsletters
+                Organize your favorite articles
               </CardDescription>
             </div>
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -254,7 +254,7 @@ export function BookmarkListManager({
                   <div className="flex items-center gap-2">
                     <h4 className="font-medium text-sm truncate">{list.name}</h4>
                     <Badge variant="outline" className="text-xs">
-                      {list.newsletter_count}
+                      {list.article_count}
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -338,7 +338,7 @@ export function BookmarkListManager({
             <AlertDialogTitle>Delete Bookmark List?</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete "{deletingList?.name}"?
-              This will remove all {deletingList?.newsletter_count || 0} newsletters from this list.
+              This will remove all {deletingList?.article_count || 0} articles from this list.
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

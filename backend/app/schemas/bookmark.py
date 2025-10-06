@@ -46,7 +46,7 @@ class BookmarkListResponse(BookmarkListBase):
 
     id: UUID = Field(..., description="Bookmark list unique ID")
     user_id: int = Field(..., description="ID of user who owns this list")
-    newsletter_count: int = Field(0, description="Number of newsletters in this list")
+    article_count: int = Field(0, description="Number of articles in this list")
     created_at: datetime = Field(..., description="When the list was created")
     updated_at: datetime = Field(..., description="When the list was last updated")
 
@@ -54,11 +54,11 @@ class BookmarkListResponse(BookmarkListBase):
 
 
 class BookmarkListSummary(BaseModel):
-    """Schema for bookmark list summary (without newsletter details)."""
+    """Schema for bookmark list summary (without article details)."""
 
     id: UUID = Field(..., description="Bookmark list unique ID")
     name: str = Field(..., description="Name of the bookmark list")
-    newsletter_count: int = Field(0, description="Number of newsletters in this list")
+    article_count: int = Field(0, description="Number of articles in this list")
     created_at: datetime = Field(..., description="When the list was created")
     updated_at: datetime = Field(..., description="When the list was last updated")
 
@@ -72,8 +72,23 @@ class BookmarkListsResponse(BaseModel):
     count: int = Field(..., description="Total number of bookmark lists")
 
 
+class ArticleBookmarkResponse(BaseModel):
+    """Schema for article in bookmark list context."""
+
+    id: UUID = Field(..., description="Article unique ID")
+    headline: str = Field(..., description="Article headline/title")
+    url: Optional[str] = Field(None, description="Article URL")
+    category: str = Field(..., description="Newsletter category")
+    received_date: datetime = Field(..., description="When newsletter was received")
+    position: int = Field(..., description="Position in newsletter")
+    created_at: datetime = Field(..., description="When article was created")
+    bookmarked_at: Optional[datetime] = Field(None, description="When article was added to this list")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class NewsletterBookmarkResponse(BaseModel):
-    """Schema for newsletter in bookmark list context."""
+    """Schema for newsletter in bookmark list context (deprecated - use ArticleBookmarkResponse)."""
 
     id: UUID = Field(..., description="Newsletter unique ID")
     source: str = Field(..., description="Email sender")
@@ -86,8 +101,20 @@ class NewsletterBookmarkResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class BookmarkListArticlesResponse(BaseModel):
+    """Schema for articles in a bookmark list."""
+
+    bookmark_list_id: UUID = Field(..., description="Bookmark list ID")
+    bookmark_list_name: str = Field(..., description="Bookmark list name")
+    articles: List[ArticleBookmarkResponse] = Field(..., description="Articles in this list")
+    count: int = Field(..., description="Number of articles in response")
+    total_count: int = Field(..., description="Total articles in this list")
+    page: int = Field(1, description="Current page number")
+    page_size: int = Field(10, description="Number of items per page")
+
+
 class BookmarkListNewslettersResponse(BaseModel):
-    """Schema for newsletters in a bookmark list."""
+    """Schema for newsletters in a bookmark list (deprecated - use BookmarkListArticlesResponse)."""
 
     bookmark_list_id: UUID = Field(..., description="Bookmark list ID")
     bookmark_list_name: str = Field(..., description="Bookmark list name")
@@ -104,4 +131,5 @@ class BookmarkOperationResponse(BaseModel):
     success: bool = Field(..., description="Whether operation succeeded")
     message: str = Field(..., description="Operation result message")
     bookmark_list_id: Optional[UUID] = Field(None, description="Bookmark list ID")
-    newsletter_id: Optional[UUID] = Field(None, description="Newsletter ID")
+    article_id: Optional[UUID] = Field(None, description="Article ID")
+    newsletter_id: Optional[UUID] = Field(None, description="Newsletter ID (deprecated - use article_id)")

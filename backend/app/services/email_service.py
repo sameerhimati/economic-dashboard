@@ -21,6 +21,8 @@ from email.header import decode_header
 
 from app.core.config import settings
 from app.models.newsletter import Newsletter
+from app.models.article import Article
+from app.models.article_source import ArticleSource
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -887,6 +889,81 @@ class EmailService:
                     )
 
                     db.add(newsletter)
+                    await db.flush()  # Flush to get newsletter.id for article sources
+
+                    # Extract and store articles from the newsletter
+                    articles_data = email_data["key_points"].get("articles", [])
+                    articles_created = 0
+                    articles_linked = 0
+
+                    for position, article_data in enumerate(articles_data):
+                        try:
+                            headline = article_data.get("headline", "")
+                            url = article_data.get("url", "")
+
+                            # Skip articles without headlines
+                            if not headline or len(headline.strip()) == 0:
+                                continue
+
+                            # Try to find existing article (same user, url, date)
+                            existing_article = None
+                            if url:
+                                result = await db.execute(
+                                    select(Article).where(
+                                        and_(
+                                            Article.user_id == user_id,
+                                            Article.url == url,
+                                            Article.received_date == email_data["received_date"]
+                                        )
+                                    )
+                                )
+                                existing_article = result.scalar_one_or_none()
+
+                            if existing_article:
+                                # Article already exists (from another newsletter)
+                                # Just link it to this newsletter
+                                article = existing_article
+                                articles_linked += 1
+                                logger.debug(
+                                    f"Linking existing article to newsletter: {headline[:50]}..."
+                                )
+                            else:
+                                # Create new article
+                                article = Article(
+                                    user_id=user_id,
+                                    headline=headline,
+                                    url=url if url else None,
+                                    category=email_data["category"],
+                                    received_date=email_data["received_date"],
+                                    position=position
+                                )
+                                db.add(article)
+                                await db.flush()  # Get the article ID
+                                articles_created += 1
+                                logger.debug(
+                                    f"Created new article: {headline[:50]}... (position {position})"
+                                )
+
+                            # Create ArticleSource linking article to newsletter
+                            article_source = ArticleSource(
+                                article_id=article.id,
+                                newsletter_id=newsletter.id
+                            )
+                            db.add(article_source)
+
+                        except Exception as e:
+                            logger.error(
+                                f"Error processing article '{article_data.get('headline', 'unknown')[:50]}': {str(e)}",
+                                exc_info=True
+                            )
+                            # Continue processing other articles even if one fails
+                            continue
+
+                    logger.info(
+                        f"Processed {len(articles_data)} articles for newsletter '{email_data['subject'][:50]}...': "
+                        f"{articles_created} created, {articles_linked} linked to existing"
+                    )
+
                     stored_count += 1
 
                 except Exception as e:

@@ -22,6 +22,7 @@ from app.api.routes import (
     data_router,
     dashboard_router,
     newsletters_router,
+    articles_router,
     user_settings_router,
     bookmarks_router,
 )
@@ -242,6 +243,7 @@ app.include_router(auth_router)
 app.include_router(data_router)
 app.include_router(dashboard_router)
 app.include_router(newsletters_router)
+app.include_router(articles_router)
 app.include_router(user_settings_router)
 app.include_router(bookmarks_router)
 

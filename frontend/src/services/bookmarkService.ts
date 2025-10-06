@@ -1,15 +1,15 @@
 import { apiClient } from './api'
-import type { Newsletter } from '@/types/newsletter'
+import type { Article } from '@/types/article'
 
 export interface BookmarkList {
   id: string
   name: string
-  newsletter_count: number
+  article_count: number
   created_at: string
   updated_at: string
 }
 
-export interface NewsletterInBookmark extends Newsletter {
+export interface ArticleInBookmark extends Article {
   bookmarked_at: string
 }
 
@@ -25,8 +25,8 @@ export interface BookmarkListResponse {
   lists: BookmarkList[]
 }
 
-export interface NewslettersInListResponse {
-  newsletters: NewsletterInBookmark[]
+export interface ArticlesInListResponse {
+  articles: ArticleInBookmark[]
 }
 
 class BookmarkService {
@@ -104,16 +104,16 @@ class BookmarkService {
   }
 
   /**
-   * Add a newsletter to a bookmark list
+   * Add an article to a bookmark list
    */
-  async addNewsletterToList(listId: string, newsletterId: string): Promise<void> {
+  async addArticleToList(listId: string, articleId: string): Promise<void> {
     try {
-      await apiClient.post(`/bookmarks/lists/${listId}/newsletters/${newsletterId}`)
+      await apiClient.post(`/bookmarks/lists/${listId}/articles/${articleId}`)
     } catch (error: any) {
-      console.error('Error adding newsletter to list:', error)
+      console.error('Error adding article to list:', error)
 
       if (error?.status === 404) {
-        throw new Error('List or newsletter not found')
+        throw new Error('List or article not found')
       }
 
       throw error
@@ -121,16 +121,16 @@ class BookmarkService {
   }
 
   /**
-   * Remove a newsletter from a bookmark list
+   * Remove an article from a bookmark list
    */
-  async removeNewsletterFromList(listId: string, newsletterId: string): Promise<void> {
+  async removeArticleFromList(listId: string, articleId: string): Promise<void> {
     try {
-      await apiClient.delete(`/bookmarks/lists/${listId}/newsletters/${newsletterId}`)
+      await apiClient.delete(`/bookmarks/lists/${listId}/articles/${articleId}`)
     } catch (error: any) {
-      console.error('Error removing newsletter from list:', error)
+      console.error('Error removing article from list:', error)
 
       if (error?.status === 404) {
-        throw new Error('List or newsletter not found')
+        throw new Error('List or article not found')
       }
 
       throw error
@@ -138,14 +138,14 @@ class BookmarkService {
   }
 
   /**
-   * Get all newsletters in a bookmark list
+   * Get all articles in a bookmark list
    */
-  async getNewslettersInList(listId: string): Promise<NewsletterInBookmark[]> {
+  async getArticlesInList(listId: string): Promise<ArticleInBookmark[]> {
     try {
-      const response = await apiClient.get<NewslettersInListResponse>(`/bookmarks/lists/${listId}/newsletters`)
-      return response.data.newsletters || []
+      const response = await apiClient.get<ArticlesInListResponse>(`/bookmarks/lists/${listId}/articles`)
+      return response.data.articles || []
     } catch (error: any) {
-      console.error('Error fetching newsletters in list:', error)
+      console.error('Error fetching articles in list:', error)
 
       if (error?.status === 404) {
         throw new Error('List not found')
@@ -156,30 +156,30 @@ class BookmarkService {
   }
 
   /**
-   * Check which lists contain a specific newsletter
-   * This is a helper method that compares newsletter IDs across all lists
+   * Check which lists contain a specific article
+   * This is a helper method that compares article IDs across all lists
    */
-  async getListsContainingNewsletter(newsletterId: string): Promise<string[]> {
+  async getListsContainingArticle(articleId: string): Promise<string[]> {
     try {
       const lists = await this.getLists()
       const listIds: string[] = []
 
-      // Check each list to see if it contains this newsletter
+      // Check each list to see if it contains this article
       for (const list of lists) {
         try {
-          const newsletters = await this.getNewslettersInList(list.id)
-          if (newsletters.some(n => n.id === newsletterId)) {
+          const articles = await this.getArticlesInList(list.id)
+          if (articles.some(a => a.id === articleId)) {
             listIds.push(list.id)
           }
         } catch (error) {
-          // If we can't fetch newsletters for a list, skip it
+          // If we can't fetch articles for a list, skip it
           console.warn(`Could not check list ${list.id}`, error)
         }
       }
 
       return listIds
     } catch (error) {
-      console.error('Error checking lists containing newsletter:', error)
+      console.error('Error checking lists containing article:', error)
       throw error
     }
   }

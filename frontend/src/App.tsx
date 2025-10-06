@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { Dashboard } from '@/pages/Dashboard'
-import { Newsletters } from '@/pages/Newsletters'
+import { Newsstand } from '@/pages/Newsstand'
 import { Bookmarks } from '@/pages/Bookmarks'
 import { Settings } from '@/pages/Settings'
 import { Login } from '@/pages/Login'
@@ -39,10 +39,10 @@ function App() {
           }
         />
         <Route
-          path="/newsletters"
+          path="/newsstand"
           element={
             <ProtectedRoute>
-              <Newsletters />
+              <Newsstand />
             </ProtectedRoute>
           }
         />

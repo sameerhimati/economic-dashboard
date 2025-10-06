@@ -14,7 +14,7 @@ const navItems: NavItem[] = [
   { icon: TrendingUp, label: 'Metrics', href: '#metrics' },
   { icon: Newspaper, label: 'Breaking News', href: '#breaking' },
   { icon: Calendar, label: 'Weekly Summary', href: '#weekly' },
-  { icon: BookOpen, label: 'Newsstand', href: '/newsletters', isRoute: true },
+  { icon: BookOpen, label: 'Newsstand', href: '/newsstand', isRoute: true },
   { icon: Bookmark, label: 'Bookmarks', href: '/bookmarks', isRoute: true },
   { icon: Settings, label: 'Settings', href: '/settings', isRoute: true },
 ]
