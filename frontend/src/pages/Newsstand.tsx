@@ -86,7 +86,7 @@ export function Newsstand() {
   const handleFetchNewsletters = async () => {
     try {
       setFetching(true)
-      const result = await newsletterService.fetchNewsletters(14)
+      const result = await newsletterService.fetchNewsletters(30)
 
       if (result.status === 'success') {
         toast.success('Newsletters fetched successfully', {
