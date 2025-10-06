@@ -370,13 +370,16 @@ class EmailService:
             # Search up to 5 elements before the link
             for _ in range(5):
                 current = current.find_previous(['strong', 'b', 'h1', 'h2', 'h3'])
-                if current:
-                    text = current.get_text(strip=True)
-                    # Filter out section headers and short text
-                    if text and 10 < len(text) < 300:
-                        # Remove trailing colon if present
-                        headline = text.rstrip(':').strip()
-                        break
+                if current is None:
+                    # No more elements to check
+                    break
+
+                text = current.get_text(strip=True)
+                # Filter out section headers and short text
+                if text and 10 < len(text) < 300:
+                    # Remove trailing colon if present
+                    headline = text.rstrip(':').strip()
+                    break
 
             if headline and headline not in seen_headlines:
                 articles.append({
@@ -402,21 +405,24 @@ class EmailService:
                 current = link
                 for _ in range(10):
                     current = current.find_previous(['strong', 'b', 'h1', 'h2', 'h3'])
-                    if current:
-                        text = current.get_text(strip=True).rstrip(':').strip()
+                    if current is None:
+                        # No more elements to check
+                        break
 
-                        # Skip common section headers
-                        skip_patterns = [
-                            'best of bisnow', 'best of the rest', 'quote of the day',
-                            'brewing in', 'job board', 'presented by', 'read more'
-                        ]
-                        if any(pattern in text.lower() for pattern in skip_patterns):
-                            continue
+                    text = current.get_text(strip=True).rstrip(':').strip()
 
-                        # Valid headline found
-                        if text and 10 < len(text) < 300 and text not in seen_headlines:
-                            headline = text
-                            break
+                    # Skip common section headers
+                    skip_patterns = [
+                        'best of bisnow', 'best of the rest', 'quote of the day',
+                        'brewing in', 'job board', 'presented by', 'read more'
+                    ]
+                    if any(pattern in text.lower() for pattern in skip_patterns):
+                        continue
+
+                    # Valid headline found
+                    if text and 10 < len(text) < 300 and text not in seen_headlines:
+                        headline = text
+                        break
 
                 if headline:
                     articles.append({
