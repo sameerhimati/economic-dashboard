@@ -1018,12 +1018,26 @@ class EmailService:
                                     f"Created new article: {headline[:50]}... (position {position})"
                                 )
 
-                            # Create ArticleSource linking article to newsletter
-                            article_source = ArticleSource(
-                                article_id=article.id,
-                                newsletter_id=newsletter.id
+                            # Check if ArticleSource already exists to avoid conflicts
+                            existing_source = await db.execute(
+                                select(ArticleSource).where(
+                                    and_(
+                                        ArticleSource.article_id == article.id,
+                                        ArticleSource.newsletter_id == newsletter.id
+                                    )
+                                )
                             )
-                            db.add(article_source)
+                            if not existing_source.scalar_one_or_none():
+                                # Create ArticleSource linking article to newsletter
+                                article_source = ArticleSource(
+                                    article_id=article.id,
+                                    newsletter_id=newsletter.id
+                                )
+                                db.add(article_source)
+                            else:
+                                logger.debug(
+                                    f"ArticleSource already exists for article {article.id} and newsletter {newsletter.id}"
+                                )
 
                         except Exception as e:
                             logger.error(
