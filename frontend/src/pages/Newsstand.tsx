@@ -12,7 +12,14 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
-import { BookOpen, Download, Loader2, Newspaper, FolderOpen, RefreshCw } from 'lucide-react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { BookOpen, Download, Loader2, Newspaper, FolderOpen, RefreshCw, Calendar, ListFilter } from 'lucide-react'
 import { articleService } from '@/services/articleService'
 import { newsletterService } from '@/services/newsletterService'
 import { toast } from 'sonner'
@@ -26,15 +33,17 @@ export function Newsstand() {
   const [fetching, setFetching] = useState(false)
   const [resetting, setResetting] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [fetchDays, setFetchDays] = useState(7)
+  const [articleLimit, setArticleLimit] = useState(500)
 
   useEffect(() => {
     loadArticles()
-  }, [refreshKey])
+  }, [refreshKey, articleLimit])
 
   const loadArticles = async () => {
     try {
       setLoading(true)
-      const response = await articleService.getRecent(100, true) as any
+      const response = await articleService.getRecent(articleLimit, true) as any
 
       // Response is always ArticlesByCategoryResponse when groupByCategory=true
       if (response && 'categories' in response && Array.isArray(response.categories)) {
@@ -86,7 +95,7 @@ export function Newsstand() {
   const handleFetchNewsletters = async () => {
     try {
       setFetching(true)
-      const result = await newsletterService.fetchNewsletters(30)
+      const result = await newsletterService.fetchNewsletters(fetchDays)
 
       if (result.status === 'success') {
         toast.success('Newsletters fetched successfully', {
@@ -130,35 +139,72 @@ export function Newsstand() {
               </div>
             </div>
 
-            {/* Action Buttons - Mobile Optimized */}
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button
-                onClick={handleResetDatabase}
-                disabled={resetting || fetching}
-                size="default"
-                variant="outline"
-                className="w-full sm:w-auto"
-              >
-                {resetting ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                )}
-                Reset DB
-              </Button>
-              <Button
-                onClick={handleFetchNewsletters}
-                disabled={fetching || resetting}
-                size="default"
-                className="w-full sm:w-auto"
-              >
-                {fetching ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Download className="mr-2 h-4 w-4" />
-                )}
-                Fetch Newsletters
-              </Button>
+            {/* Controls - Fetch Settings & Actions */}
+            <div className="flex flex-col gap-3">
+              {/* Fetch Settings */}
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex items-center gap-2 flex-1">
+                  <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm text-muted-foreground shrink-0">Fetch:</span>
+                  <Select value={fetchDays.toString()} onValueChange={(v) => setFetchDays(Number(v))}>
+                    <SelectTrigger className="w-full sm:w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="7">7 days</SelectItem>
+                      <SelectItem value="14">14 days</SelectItem>
+                      <SelectItem value="30">30 days</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center gap-2 flex-1">
+                  <ListFilter className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm text-muted-foreground shrink-0">Show:</span>
+                  <Select value={articleLimit.toString()} onValueChange={(v) => setArticleLimit(Number(v))}>
+                    <SelectTrigger className="w-full sm:w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="100">100</SelectItem>
+                      <SelectItem value="200">200</SelectItem>
+                      <SelectItem value="500">500</SelectItem>
+                      <SelectItem value="1000">All</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  onClick={handleResetDatabase}
+                  disabled={resetting || fetching}
+                  size="default"
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                >
+                  {resetting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                  )}
+                  Reset DB
+                </Button>
+                <Button
+                  onClick={handleFetchNewsletters}
+                  disabled={fetching || resetting}
+                  size="default"
+                  className="w-full sm:w-auto"
+                >
+                  {fetching ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="mr-2 h-4 w-4" />
+                  )}
+                  Fetch Newsletters ({fetchDays} days)
+                </Button>
+              </div>
             </div>
           </div>
 
