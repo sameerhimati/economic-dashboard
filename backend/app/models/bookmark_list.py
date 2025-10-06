@@ -32,7 +32,6 @@ class BookmarkList(Base, TimestampMixin):
         name: Name of the bookmark list (e.g., 'Houston Deals', 'Market Trends')
         user: User relationship
         articles: Many-to-many relationship with Article through article_bookmarks
-        newsletters: Many-to-many relationship with Newsletter (deprecated - will be removed)
         created_at: When the bookmark list was created (from TimestampMixin)
         updated_at: When the bookmark list was last updated (from TimestampMixin)
     """
@@ -77,15 +76,6 @@ class BookmarkList(Base, TimestampMixin):
         back_populates="bookmark_lists",
         lazy="selectin",
         doc="Articles saved to this bookmark list"
-    )
-
-    # Many-to-many relationship with Newsletter through newsletter_bookmarks (deprecated - will be removed)
-    newsletters: Mapped[list["Newsletter"]] = relationship(
-        "Newsletter",
-        secondary="newsletter_bookmarks",
-        back_populates="bookmark_lists",
-        lazy="selectin",
-        doc="Newsletters saved to this bookmark list (deprecated - use articles instead)"
     )
 
     # Table constraints and indexes

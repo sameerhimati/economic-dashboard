@@ -77,15 +77,6 @@ class Newsletter(Base, TimestampMixin):
         doc="Articles extracted from this newsletter"
     )
 
-    # Many-to-many relationship with BookmarkList through newsletter_bookmarks (deprecated - will be removed)
-    bookmark_lists: Mapped[list["BookmarkList"]] = relationship(
-        "BookmarkList",
-        secondary="newsletter_bookmarks",
-        back_populates="newsletters",
-        lazy="selectin",
-        doc="Bookmark lists that contain this newsletter (deprecated - use article bookmarks instead)"
-    )
-
     # Email source/sender
     source: Mapped[str] = mapped_column(
         String(500),
