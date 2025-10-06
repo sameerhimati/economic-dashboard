@@ -22,6 +22,7 @@ from app.schemas.article import (
     ArticleWithSources,
     ArticleListResponse,
     ArticlesByCategoryResponse,
+    CategorizedArticlesResponse,
 )
 from app.api.deps import get_current_active_user
 
@@ -34,7 +35,7 @@ router = APIRouter(prefix="/articles", tags=["Articles"])
 
 @router.get(
     "/recent",
-    response_model=ArticleListResponse | Dict[str, ArticlesByCategoryResponse],
+    response_model=ArticleListResponse | CategorizedArticlesResponse,
     status_code=status.HTTP_200_OK,
     summary="Get recent articles",
     description="Retrieve recent articles for the authenticated user, optionally grouped by category"
@@ -52,12 +53,12 @@ async def get_recent_articles(
 
     Args:
         limit: Maximum number of articles to return (1-100)
-        group_by_category: If True, return dict grouped by category; if False, return flat list
+        group_by_category: If True, return categorized array; if False, return flat list
         db: Database session
         current_user: Authenticated user (REQUIRED)
 
     Returns:
-        ArticleListResponse or Dict[str, ArticlesByCategoryResponse]: Recent articles
+        ArticleListResponse or CategorizedArticlesResponse: Recent articles
     """
     logger.info(
         f"Fetching recent articles for user {current_user.id}: "
@@ -100,6 +101,7 @@ async def get_recent_articles(
         else:
             # Group by category
             category_dict: Dict[str, List[ArticleResponse]] = {}
+            total_articles = 0
 
             for article in articles:
                 # Calculate source count
@@ -112,22 +114,26 @@ async def get_recent_articles(
                     category_dict[article.category] = []
 
                 category_dict[article.category].append(article_response)
+                total_articles += 1
 
-            # Build category response
-            response = {}
+            # Build category response as array
+            categories_list = []
             for category, articles_list in category_dict.items():
-                response[category] = ArticlesByCategoryResponse(
+                categories_list.append(ArticlesByCategoryResponse(
                     category=category,
                     article_count=len(articles_list),
                     articles=articles_list
-                )
+                ))
 
             logger.info(
-                f"Returning {len(articles)} articles grouped into {len(response)} categories "
+                f"Returning {total_articles} articles grouped into {len(categories_list)} categories "
                 f"for user {current_user.id}"
             )
 
-            return response
+            return CategorizedArticlesResponse(
+                categories=categories_list,
+                total_articles=total_articles
+            )
 
     except Exception as e:
         logger.error(f"Error fetching recent articles: {str(e)}", exc_info=True)

@@ -58,3 +58,10 @@ class ArticlesByCategoryResponse(BaseModel):
     category: str = Field(..., description="Newsletter category")
     article_count: int = Field(..., description="Number of articles in this category")
     articles: List[ArticleResponse] = Field(..., description="Articles in this category")
+
+
+class CategorizedArticlesResponse(BaseModel):
+    """Wrapper for array of categorized articles."""
+
+    categories: List[ArticlesByCategoryResponse] = Field(..., description="Articles grouped by category")
+    total_articles: int = Field(..., description="Total number of articles across all categories")
