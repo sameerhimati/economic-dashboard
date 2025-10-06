@@ -1,0 +1,32 @@
+name: Fetch Newsletters (Cron)
+
+on:
+  schedule:
+    # Run every day at 8 AM UTC (3 AM EST / 12 AM PST)
+    - cron: '0 8 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  fetch-newsletters:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install httpx
+
+      - name: Fetch newsletters
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          CRON_USER_EMAIL: ${{ secrets.CRON_USER_EMAIL }}
+          CRON_USER_PASSWORD: ${{ secrets.CRON_USER_PASSWORD }}
+        run: |
+          python backend/cron/fetch_newsletters.py

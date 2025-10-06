@@ -1,0 +1,32 @@
+name: Cleanup Old Articles (Cron)
+
+on:
+  schedule:
+    # Run every Sunday at 2 AM UTC (9 PM Saturday EST / 6 PM Saturday PST)
+    - cron: '0 2 * * 0'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  cleanup-articles:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install httpx
+
+      - name: Cleanup old articles
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          CRON_USER_EMAIL: ${{ secrets.CRON_USER_EMAIL }}
+          CRON_USER_PASSWORD: ${{ secrets.CRON_USER_PASSWORD }}
+        run: |
+          python backend/cron/cleanup_articles.py

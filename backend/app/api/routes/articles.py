@@ -445,3 +445,97 @@ async def get_article_by_id(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error fetching article"
         )
+
+
+@router.post(
+    "/cleanup",
+    status_code=status.HTTP_200_OK,
+    summary="Clean up old articles",
+    description="Delete articles older than specified days, preserving bookmarked articles"
+)
+async def cleanup_old_articles(
+    days: int = Query(30, ge=1, le=365, description="Delete articles older than this many days"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Clean up old articles while preserving bookmarked ones.
+
+    Deletes articles older than the specified number of days that are NOT in any bookmark list.
+    This helps keep the database clean while preserving important saved articles.
+
+    Args:
+        days: Delete articles older than this many days (default: 30)
+        db: Database session
+        current_user: Authenticated user (REQUIRED)
+
+    Returns:
+        dict: Count of deleted and preserved articles
+    """
+    from datetime import datetime, timedelta, timezone
+
+    logger.info(f"Starting article cleanup for user {current_user.id}: older than {days} days")
+
+    try:
+        # Calculate cutoff date
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
+
+        # Find old articles that are NOT bookmarked
+        # An article is bookmarked if it appears in article_bookmarks table
+        old_articles_query = (
+            select(Article)
+            .where(
+                and_(
+                    Article.user_id == current_user.id,
+                    Article.received_date < cutoff_date
+                )
+            )
+            .outerjoin(Article.bookmark_lists)
+            .group_by(Article.id)
+            .having(func.count(Article.bookmark_lists) == 0)
+        )
+
+        result = await db.execute(old_articles_query)
+        old_articles = result.scalars().all()
+
+        deleted_count = len(old_articles)
+
+        # Delete articles (CASCADE will handle article_sources)
+        for article in old_articles:
+            await db.delete(article)
+
+        await db.commit()
+
+        # Count preserved bookmarked articles (older than cutoff but still exist)
+        preserved_query = (
+            select(func.count(Article.id))
+            .where(
+                and_(
+                    Article.user_id == current_user.id,
+                    Article.received_date < cutoff_date
+                )
+            )
+        )
+        preserved_result = await db.execute(preserved_query)
+        preserved_count = preserved_result.scalar() or 0
+
+        logger.info(
+            f"Cleanup complete for user {current_user.id}: "
+            f"deleted {deleted_count} articles, preserved {preserved_count} bookmarked articles"
+        )
+
+        return {
+            "status": "success",
+            "deleted_count": deleted_count,
+            "preserved_count": preserved_count,
+            "cutoff_date": cutoff_date.isoformat(),
+            "message": f"Deleted {deleted_count} articles older than {days} days, preserved {preserved_count} bookmarked articles"
+        }
+
+    except Exception as e:
+        logger.error(f"Error during article cleanup: {str(e)}", exc_info=True)
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error cleaning up articles"
+        )
