@@ -48,31 +48,31 @@
 /* Light mode - Clean whites */
 .light {
   --background: 0 0% 100%;         /* white */
-  --foreground: 0 0% 10%;          /* zinc-900 equivalent */
+  --foreground: 0 0% 3%;           /* Almost black for high contrast */
 
-  --card: 0 0% 100%;
-  --card-foreground: 0 0% 10%;
+  --card: 0 0% 98%;                /* Slight gray for better visibility */
+  --card-foreground: 0 0% 3%;      /* Almost black */
 
-  --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 10%;
+  --popover: 0 0% 98%;
+  --popover-foreground: 0 0% 3%;
 
   --primary: 217 91% 60%;          /* blue-500 */
   --primary-foreground: 0 0% 98%;
 
   --secondary: 0 0% 96%;           /* zinc-100 */
-  --secondary-foreground: 0 0% 10%;
+  --secondary-foreground: 0 0% 3%;
 
   --muted: 0 0% 96%;
-  --muted-foreground: 0 0% 45%;
+  --muted-foreground: 0 0% 40%;    /* Darker for better readability */
 
   --accent: 0 0% 96%;
-  --accent-foreground: 0 0% 10%;
+  --accent-foreground: 0 0% 3%;
 
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 98%;
 
-  --border: 0 0% 90%;              /* zinc-200 */
-  --input: 0 0% 90%;
+  --border: 0 0% 85%;              /* Darker border for visibility */
+  --input: 0 0% 85%;
 
   --ring: 217 91% 60%;
 }

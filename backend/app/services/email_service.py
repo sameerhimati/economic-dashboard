@@ -872,26 +872,28 @@ class EmailService:
 
                     if existing:
                         logger.debug(f"Newsletter already exists for user {user_id}: {email_data['subject'][:50]}...")
+                        newsletter = existing
                         skipped_count += 1
-                        continue
+                        # Don't skip - still need to extract articles from existing newsletter
+                    else:
+                        # Create newsletter record with user_id
+                        newsletter = Newsletter(
+                            user_id=user_id,
+                            source=email_data["source"],
+                            category=email_data["category"],
+                            subject=email_data["subject"],
+                            content_html=email_data["content_html"],
+                            content_text=email_data["content_text"],
+                            key_points=email_data["key_points"],
+                            received_date=email_data["received_date"],
+                            parsed_date=datetime.now(timezone.utc)
+                        )
 
-                    # Create newsletter record with user_id
-                    newsletter = Newsletter(
-                        user_id=user_id,
-                        source=email_data["source"],
-                        category=email_data["category"],
-                        subject=email_data["subject"],
-                        content_html=email_data["content_html"],
-                        content_text=email_data["content_text"],
-                        key_points=email_data["key_points"],
-                        received_date=email_data["received_date"],
-                        parsed_date=datetime.now(timezone.utc)
-                    )
+                        db.add(newsletter)
+                        await db.flush()  # Flush to get newsletter.id for article sources
+                        stored_count += 1
 
-                    db.add(newsletter)
-                    await db.flush()  # Flush to get newsletter.id for article sources
-
-                    # Extract and store articles from the newsletter
+                    # Extract and store articles from the newsletter (both new and existing)
                     articles_data = email_data["key_points"].get("articles", [])
                     articles_created = 0
                     articles_linked = 0
@@ -963,8 +965,6 @@ class EmailService:
                         f"Processed {len(articles_data)} articles for newsletter '{email_data['subject'][:50]}...': "
                         f"{articles_created} created, {articles_linked} linked to existing"
                     )
-
-                    stored_count += 1
 
                 except Exception as e:
                     logger.error(
