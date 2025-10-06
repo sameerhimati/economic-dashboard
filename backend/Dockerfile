@@ -18,8 +18,8 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements file
-COPY requirements.txt .
+# Copy requirements file from backend directory
+COPY backend/requirements.txt .
 
 # Install Python dependencies in a virtual environment
 # This allows us to copy only the venv to the final stage
@@ -48,8 +48,8 @@ RUN apt-get update && apt-get install -y \
 # Copy virtual environment from builder stage
 COPY --from=builder /opt/venv /opt/venv
 
-# Copy application code
-COPY . .
+# Copy application code from backend directory
+COPY backend/ .
 
 # Set environment variables
 ENV PATH="/opt/venv/bin:$PATH" \
