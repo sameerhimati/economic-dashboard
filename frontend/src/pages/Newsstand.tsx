@@ -21,6 +21,7 @@ import { apiClient } from '@/services/api'
 
 export function Newsstand() {
   const [categories, setCategories] = useState<ArticlesByCategory[]>([])
+  const [newsletterCount, setNewsletterCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [fetching, setFetching] = useState(false)
   const [resetting, setResetting] = useState(false)
@@ -33,15 +34,19 @@ export function Newsstand() {
   const loadArticles = async () => {
     try {
       setLoading(true)
-      const data = await articleService.getRecent(100, true) as ArticlesByCategory[]
+      const response = await articleService.getRecent(100, true)
 
-      // Ensure data is an array
-      if (Array.isArray(data)) {
-        setCategories(data)
+      // Check if response has categories (grouped) or is just array
+      if ('categories' in response && Array.isArray(response.categories)) {
+        setCategories(response.categories)
+        setNewsletterCount(response.newsletter_count || 0)
+      } else if (Array.isArray(response)) {
+        setCategories(response)
+        setNewsletterCount(0)
       } else {
-        // Handle unexpected format
-        console.warn('Unexpected API response format:', data)
+        console.warn('Unexpected API response format:', response)
         setCategories([])
+        setNewsletterCount(0)
       }
     } catch (error: any) {
       console.error('Error loading articles:', error)
@@ -156,7 +161,7 @@ export function Newsstand() {
               <span>
                 {categories.length > 0 ? (
                   <>
-                    {totalArticles} {totalArticles === 1 ? 'article' : 'articles'} across {categories.length} {categories.length === 1 ? 'category' : 'categories'}
+                    {totalArticles} {totalArticles === 1 ? 'article' : 'articles'} from {newsletterCount} {newsletterCount === 1 ? 'newsletter' : 'newsletters'} across {categories.length} {categories.length === 1 ? 'category' : 'categories'}
                   </>
                 ) : (
                   'No articles loaded yet - click "Fetch Newsletters" to get started'

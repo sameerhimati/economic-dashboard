@@ -11,6 +11,7 @@ export interface ArticleListResponse {
 export interface ArticlesByCategoryResponse {
   categories: ArticlesByCategory[]
   total_articles: number
+  newsletter_count: number
 }
 
 export interface ArticleSearchResponse {
@@ -26,14 +27,14 @@ class ArticleService {
   /**
    * Get recent articles with optional grouping by category
    */
-  async getRecent(limit: number = 100, groupByCategory: boolean = false): Promise<ArticlesByCategory[] | Article[]> {
+  async getRecent(limit: number = 100, groupByCategory: boolean = false): Promise<ArticlesByCategoryResponse | Article[]> {
     try {
       const params: Record<string, string | number | boolean> = { limit }
 
       if (groupByCategory) {
         params.group_by_category = true
         const response = await apiClient.get<ArticlesByCategoryResponse>('/articles/recent', { params })
-        return response.data.categories
+        return response.data  // Return the full response with categories and newsletter_count
       } else {
         const response = await apiClient.get<ArticleListResponse>('/articles/recent', { params })
         return response.data.articles

@@ -125,14 +125,22 @@ async def get_recent_articles(
                     articles=articles_list
                 ))
 
+            # Get newsletter count
+            newsletter_count_stmt = select(func.count(func.distinct(Newsletter.id))).where(
+                Newsletter.user_id == current_user.id
+            )
+            newsletter_count_result = await db.execute(newsletter_count_stmt)
+            newsletter_count = newsletter_count_result.scalar() or 0
+
             logger.info(
                 f"Returning {total_articles} articles grouped into {len(categories_list)} categories "
-                f"for user {current_user.id}"
+                f"from {newsletter_count} newsletters for user {current_user.id}"
             )
 
             return CategorizedArticlesResponse(
                 categories=categories_list,
-                total_articles=total_articles
+                total_articles=total_articles,
+                newsletter_count=newsletter_count
             )
 
     except Exception as e:

@@ -65,3 +65,4 @@ class CategorizedArticlesResponse(BaseModel):
 
     categories: List[ArticlesByCategoryResponse] = Field(..., description="Articles grouped by category")
     total_articles: int = Field(..., description="Total number of articles across all categories")
+    newsletter_count: int = Field(..., description="Total number of newsletters that contain these articles")
