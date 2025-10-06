@@ -34,15 +34,12 @@ export function Newsstand() {
   const loadArticles = async () => {
     try {
       setLoading(true)
-      const response = await articleService.getRecent(100, true)
+      const response = await articleService.getRecent(100, true) as any
 
-      // Check if response has categories (grouped) or is just array
-      if ('categories' in response && Array.isArray(response.categories)) {
+      // Response is always ArticlesByCategoryResponse when groupByCategory=true
+      if (response && 'categories' in response && Array.isArray(response.categories)) {
         setCategories(response.categories)
         setNewsletterCount(response.newsletter_count || 0)
-      } else if (Array.isArray(response)) {
-        setCategories(response)
-        setNewsletterCount(0)
       } else {
         console.warn('Unexpected API response format:', response)
         setCategories([])
@@ -51,6 +48,7 @@ export function Newsstand() {
     } catch (error: any) {
       console.error('Error loading articles:', error)
       setCategories([]) // Set empty array on error
+      setNewsletterCount(0)
       toast.error('Failed to load articles', {
         description: error.message || 'Please try again later'
       })
