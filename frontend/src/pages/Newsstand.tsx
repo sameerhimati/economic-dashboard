@@ -32,9 +32,18 @@ export function Newsstand() {
     try {
       setLoading(true)
       const data = await articleService.getRecent(100, true) as ArticlesByCategory[]
-      setCategories(data)
+
+      // Ensure data is an array
+      if (Array.isArray(data)) {
+        setCategories(data)
+      } else {
+        // Handle unexpected format
+        console.warn('Unexpected API response format:', data)
+        setCategories([])
+      }
     } catch (error: any) {
       console.error('Error loading articles:', error)
+      setCategories([]) // Set empty array on error
       toast.error('Failed to load articles', {
         description: error.message || 'Please try again later'
       })
@@ -70,7 +79,7 @@ export function Newsstand() {
     }
   }
 
-  const totalArticles = categories.reduce((sum, cat) => sum + cat.article_count, 0)
+  const totalArticles = categories?.reduce((sum, cat) => sum + cat.article_count, 0) ?? 0
 
   return (
     <Layout>
