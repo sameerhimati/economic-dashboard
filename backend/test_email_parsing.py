@@ -57,9 +57,25 @@ def extract_articles_from_eml(eml_path):
         if len(text) > 10 and len(text) < 200:
             print(f"{i}. {text}")
 
+    # Find all headings
+    print("\n\nAll headings (h1-h6):")
+    print("-" * 80)
+    headings = soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+    for i, tag in enumerate(headings, 1):
+        text = tag.get_text(strip=True)
+        print(f"{i}. [{tag.name}] {text}")
+
+    # Find paragraphs with strong styling or large font
+    print("\n\nParagraphs with inline styles (potential headlines):")
+    print("-" * 80)
+    paragraphs = soup.find_all('p')
+    for i, p in enumerate(paragraphs[:20], 1):  # First 20 paragraphs
+        style = p.get('style', '')
+        text = p.get_text(strip=True)
+        if ('font-weight' in style or 'font-size' in style) and len(text) > 10 and len(text) < 200:
+            print(f"{i}. {text[:100]}")
+
     print("\n" + "=" * 80)
-    print("Save a Bisnow email as .eml and pass the path to this script")
-    print("Example: python test_email_parsing.py ~/Desktop/bisnow_email.eml")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
