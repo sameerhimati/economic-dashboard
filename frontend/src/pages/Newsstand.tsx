@@ -12,16 +12,18 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
-import { BookOpen, Download, Loader2, Newspaper, FolderOpen } from 'lucide-react'
+import { BookOpen, Download, Loader2, Newspaper, FolderOpen, RefreshCw } from 'lucide-react'
 import { articleService } from '@/services/articleService'
 import { newsletterService } from '@/services/newsletterService'
 import { toast } from 'sonner'
 import type { ArticlesByCategory } from '@/types/article'
+import { apiClient } from '@/services/api'
 
 export function Newsstand() {
   const [categories, setCategories] = useState<ArticlesByCategory[]>([])
   const [loading, setLoading] = useState(true)
   const [fetching, setFetching] = useState(false)
+  const [resetting, setResetting] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
@@ -49,6 +51,32 @@ export function Newsstand() {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleResetDatabase = async () => {
+    try {
+      setResetting(true)
+      const response = await apiClient.post('/admin/reset-newsletters-articles')
+
+      if (response.data.status === 'success') {
+        toast.success('Database reset successfully', {
+          description: 'All newsletters and articles have been cleared'
+        })
+        // Trigger a refresh of the articles
+        setRefreshKey(prev => prev + 1)
+      } else {
+        toast.error('Failed to reset database', {
+          description: response.data.message
+        })
+      }
+    } catch (error: any) {
+      console.error('Error resetting database:', error)
+      toast.error('Error', {
+        description: 'Failed to reset database'
+      })
+    } finally {
+      setResetting(false)
     }
   }
 
@@ -96,14 +124,29 @@ export function Newsstand() {
                 Your curated real estate article feed • Currently featuring Bisnow, with more sources coming soon
               </p>
             </div>
-            <Button onClick={handleFetchNewsletters} disabled={fetching} size="lg">
-              {fetching ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="mr-2 h-4 w-4" />
-              )}
-              Fetch Newsletters
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleResetDatabase}
+                disabled={resetting || fetching}
+                size="lg"
+                variant="outline"
+              >
+                {resetting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                )}
+                Reset DB
+              </Button>
+              <Button onClick={handleFetchNewsletters} disabled={fetching || resetting} size="lg">
+                {fetching ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                Fetch Newsletters
+              </Button>
+            </div>
           </div>
 
           {/* Article Count Summary */}

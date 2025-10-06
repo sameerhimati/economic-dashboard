@@ -25,6 +25,7 @@ from app.api.routes import (
     articles_router,
     user_settings_router,
     bookmarks_router,
+    admin_router,
 )
 
 # Configure logging
@@ -246,6 +247,7 @@ app.include_router(newsletters_router)
 app.include_router(articles_router)
 app.include_router(user_settings_router)
 app.include_router(bookmarks_router)
+app.include_router(admin_router, prefix="/admin", tags=["admin"])
 
 
 # Root endpoint

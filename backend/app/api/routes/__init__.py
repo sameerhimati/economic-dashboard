@@ -11,6 +11,7 @@ from app.api.routes.newsletters import router as newsletters_router
 from app.api.routes.articles import router as articles_router
 from app.api.routes.user_settings import router as user_settings_router
 from app.api.routes.bookmarks import router as bookmarks_router
+from app.api.routes.admin import router as admin_router
 
 __all__ = [
     "health_router",
@@ -21,4 +22,5 @@ __all__ = [
     "articles_router",
     "user_settings_router",
     "bookmarks_router",
+    "admin_router",
 ]
