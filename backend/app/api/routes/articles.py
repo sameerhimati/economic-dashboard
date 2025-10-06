@@ -66,11 +66,13 @@ async def get_recent_articles(
     )
 
     try:
-        # Build query - filter by user_id and load sources
+        # Build query - filter by user_id and load sources with newsletters
         query = (
             select(Article)
             .where(Article.user_id == current_user.id)
-            .options(selectinload(Article.sources))
+            .options(
+                selectinload(Article.sources).selectinload(ArticleSource.newsletter)
+            )
             .order_by(desc(Article.received_date))
             .limit(limit)
         )
@@ -104,11 +106,17 @@ async def get_recent_articles(
             total_articles = 0
 
             for article in articles:
-                # Calculate source count
+                # Calculate source count and extract newsletter subjects
                 source_count = len(article.sources) if article.sources else 1
+                newsletter_subjects = [
+                    source.newsletter.subject
+                    for source in article.sources
+                    if source.newsletter
+                ] if article.sources else []
 
-                article_response = ArticleResponse.model_validate(article)
+                article_response = ArticleWithSources.model_validate(article)
                 article_response.source_count = source_count
+                article_response.newsletter_subjects = newsletter_subjects
 
                 if article.category not in category_dict:
                     category_dict[article.category] = []

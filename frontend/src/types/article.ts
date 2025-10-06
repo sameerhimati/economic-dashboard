@@ -9,9 +9,6 @@ export interface Article {
   created_at: string
   updated_at: string
   source_count: number  // Number of newsletters this article appeared in
-}
-
-export interface ArticleWithSources extends Article {
   newsletter_subjects: string[]  // Subjects of newsletters containing this article
 }
 

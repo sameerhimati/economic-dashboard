@@ -57,7 +57,7 @@ class ArticlesByCategoryResponse(BaseModel):
 
     category: str = Field(..., description="Newsletter category")
     article_count: int = Field(..., description="Number of articles in this category")
-    articles: List[ArticleResponse] = Field(..., description="Articles in this category")
+    articles: List[ArticleWithSources] = Field(..., description="Articles in this category")
 
 
 class CategorizedArticlesResponse(BaseModel):

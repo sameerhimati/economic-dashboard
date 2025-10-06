@@ -1,5 +1,5 @@
 import { apiClient } from './api'
-import type { Article, ArticleWithSources, ArticlesByCategory } from '@/types/article'
+import type { Article, ArticlesByCategory } from '@/types/article'
 
 export interface ArticleListResponse {
   articles: Article[]
@@ -76,9 +76,9 @@ class ArticleService {
   /**
    * Get a single article by ID with source information
    */
-  async getById(id: string): Promise<ArticleWithSources> {
+  async getById(id: string): Promise<Article> {
     try {
-      const response = await apiClient.get<ArticleWithSources>(`/articles/${id}`)
+      const response = await apiClient.get<Article>(`/articles/${id}`)
       return response.data
     } catch (error) {
       console.error(`Error fetching article ${id}:`, error)
