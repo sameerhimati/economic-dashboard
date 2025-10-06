@@ -781,45 +781,46 @@ class EmailService:
             # Calculate date range
             since_date = (datetime.now() - timedelta(days=days)).strftime("%d-%b-%Y")
 
-            # Build IMAP search query with sender filtering
-            # This prevents fetching ALL emails and filtering in Python
-            sender_criteria_parts = []
-            for domain in sender_filter:
-                sender_criteria_parts.append(f'FROM "{domain}"')
-
-            # Combine sender filters with OR
-            if len(sender_criteria_parts) > 1:
-                sender_criteria = f'OR {" ".join(sender_criteria_parts)}'
-            else:
-                sender_criteria = sender_criteria_parts[0] if sender_criteria_parts else ''
-
-            # Combine date and sender
-            if sender_criteria:
-                search_criteria = f'SINCE {since_date} {sender_criteria}'
-            else:
-                search_criteria = f'SINCE {since_date}'
-
-            logger.info(f"IMAP search criteria: {search_criteria}")
-
             parsed_emails = []
 
             # Select All Mail to search across all folders/labels (including Promotions)
             # Gmail stores emails in [Gmail]/All Mail which includes Primary, Promotions, etc.
             try:
                 self.connection.select('"[Gmail]/All Mail"')
-                logger.info(f"Searching [Gmail]/All Mail for emails: {search_criteria}")
+                logger.info(f"Selected [Gmail]/All Mail folder")
             except Exception as e:
                 logger.warning(f"Failed to select [Gmail]/All Mail: {e}, falling back to INBOX")
                 self.connection.select('INBOX')
-                logger.info(f"Searching INBOX for emails: {search_criteria}")
+                logger.info(f"Selected INBOX folder")
 
-            # Search emails
-            status, messages = self.connection.search(None, search_criteria)
+            # Search for emails from each sender domain separately and combine results
+            # This is more reliable than complex nested OR syntax
+            all_email_ids = set()
 
-            if status != 'OK':
-                raise EmailServiceError(f"Email search failed with status: {status}")
+            for domain in sender_filter:
+                try:
+                    # IMAP search: (SINCE date FROM domain)
+                    search_criteria = f'(SINCE {since_date} FROM "{domain}")'
+                    logger.info(f"Searching with criteria: {search_criteria}")
 
-            email_ids = messages[0].split()
+                    status, messages = self.connection.search(None, search_criteria)
+
+                    if status != 'OK':
+                        logger.warning(f"Search failed for domain {domain}: {status}")
+                        continue
+
+                    email_ids = messages[0].split()
+                    logger.info(f"Found {len(email_ids)} emails from {domain}")
+
+                    # Add to combined set (deduplicates automatically)
+                    all_email_ids.update(email_ids)
+
+                except Exception as e:
+                    logger.error(f"Error searching for domain {domain}: {str(e)}")
+                    continue
+
+            email_ids = list(all_email_ids)
+            logger.info(f"Total unique emails found: {len(email_ids)}")
             logger.info(f"Found {len(email_ids)} total emails in INBOX since {since_date}")
 
             # Process each email
