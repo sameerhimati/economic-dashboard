@@ -350,91 +350,96 @@ class EmailService:
         Returns:
             List[Dict[str, str]]: List of article dictionaries with 'headline' and 'url' keys
         """
-        articles = []
-        seen_headlines = set()
+        try:
+            articles = []
+            seen_headlines = set()
 
-        # Strategy 1: Find "Read more here" links and work backwards to find headline
-        read_more_links = soup.find_all('a', string=lambda s: s and 'read more' in s.lower())
+            # Strategy 1: Find "Read more here" links and work backwards to find headline
+            read_more_links = soup.find_all('a', string=lambda s: s and 'read more' in s.lower())
 
-        logger.debug(f"Found {len(read_more_links)} 'Read more' links")
+            logger.debug(f"Found {len(read_more_links)} 'Read more' links")
 
-        for link in read_more_links:
-            url = link.get('href', '')
-            if not self._is_valid_article_url(url):
-                continue
-
-            # Find the preceding bold/strong tag (the headline)
-            headline = None
-            current = link
-
-            # Search up to 5 elements before the link
-            for _ in range(5):
-                current = current.find_previous(['strong', 'b', 'h1', 'h2', 'h3'])
-                if current is None:
-                    # No more elements to check
-                    break
-
-                text = current.get_text(strip=True)
-                # Filter out section headers and short text
-                if text and 10 < len(text) < 300:
-                    # Remove trailing colon if present
-                    headline = text.rstrip(':').strip()
-                    break
-
-            if headline and headline not in seen_headlines:
-                articles.append({
-                    "headline": headline,
-                    "url": url
-                })
-                seen_headlines.add(headline)
-
-        # Strategy 2: Look for all links with bisnow.com URLs and find nearby headlines
-        if len(articles) < 5:
-            logger.debug("Using fallback strategy to find articles")
-            all_links = soup.find_all('a', href=True)
-
-            for link in all_links:
+            for link in read_more_links:
                 url = link.get('href', '')
                 if not self._is_valid_article_url(url):
                     continue
 
-                # Look for a nearby bold/strong tag (the headline)
+                # Find the preceding bold/strong tag (the headline)
                 headline = None
-
-                # Try to find previous bold element (within reasonable distance)
                 current = link
-                for _ in range(10):
+
+                # Search up to 5 elements before the link
+                for _ in range(5):
                     current = current.find_previous(['strong', 'b', 'h1', 'h2', 'h3'])
                     if current is None:
                         # No more elements to check
                         break
 
-                    text = current.get_text(strip=True).rstrip(':').strip()
-
-                    # Skip common section headers
-                    skip_patterns = [
-                        'best of bisnow', 'best of the rest', 'quote of the day',
-                        'brewing in', 'job board', 'presented by', 'read more'
-                    ]
-                    if any(pattern in text.lower() for pattern in skip_patterns):
-                        continue
-
-                    # Valid headline found
-                    if text and 10 < len(text) < 300 and text not in seen_headlines:
-                        headline = text
+                    text = current.get_text(strip=True)
+                    # Filter out section headers and short text
+                    if text and 10 < len(text) < 300:
+                        # Remove trailing colon if present
+                        headline = text.rstrip(':').strip()
                         break
 
-                if headline:
+                if headline and headline not in seen_headlines:
                     articles.append({
                         "headline": headline,
                         "url": url
                     })
                     seen_headlines.add(headline)
 
-        logger.info(f"Extracted {len(articles)} articles from email")
+            # Strategy 2: Look for all links with bisnow.com URLs and find nearby headlines
+            if len(articles) < 5:
+                logger.debug("Using fallback strategy to find articles")
+                all_links = soup.find_all('a', href=True)
 
-        # Limit to first 20 articles to avoid noise
-        return articles[:20]
+                for link in all_links:
+                    url = link.get('href', '')
+                    if not self._is_valid_article_url(url):
+                        continue
+
+                    # Look for a nearby bold/strong tag (the headline)
+                    headline = None
+
+                    # Try to find previous bold element (within reasonable distance)
+                    current = link
+                    for _ in range(10):
+                        current = current.find_previous(['strong', 'b', 'h1', 'h2', 'h3'])
+                        if current is None:
+                            # No more elements to check
+                            break
+
+                        text = current.get_text(strip=True).rstrip(':').strip()
+
+                        # Skip common section headers
+                        skip_patterns = [
+                            'best of bisnow', 'best of the rest', 'quote of the day',
+                            'brewing in', 'job board', 'presented by', 'read more'
+                        ]
+                        if any(pattern in text.lower() for pattern in skip_patterns):
+                            continue
+
+                        # Valid headline found
+                        if text and 10 < len(text) < 300 and text not in seen_headlines:
+                            headline = text
+                            break
+
+                    if headline:
+                        articles.append({
+                            "headline": headline,
+                            "url": url
+                        })
+                        seen_headlines.add(headline)
+
+            logger.info(f"Extracted {len(articles)} articles from email")
+
+            # Limit to first 20 articles to avoid noise
+            return articles[:20]
+
+        except Exception as e:
+            logger.error(f"Error extracting articles: {str(e)}", exc_info=True)
+            return []  # Return empty list on error to prevent crash
 
     def _find_article_url(self, tag) -> Optional[str]:
         """
@@ -776,8 +781,25 @@ class EmailService:
             # Calculate date range
             since_date = (datetime.now() - timedelta(days=days)).strftime("%d-%b-%Y")
 
-            # Build search query
-            search_criteria = f'(SINCE {since_date})'
+            # Build IMAP search query with sender filtering
+            # This prevents fetching ALL emails and filtering in Python
+            sender_criteria_parts = []
+            for domain in sender_filter:
+                sender_criteria_parts.append(f'FROM "{domain}"')
+
+            # Combine sender filters with OR
+            if len(sender_criteria_parts) > 1:
+                sender_criteria = f'OR {" ".join(sender_criteria_parts)}'
+            else:
+                sender_criteria = sender_criteria_parts[0] if sender_criteria_parts else ''
+
+            # Combine date and sender
+            if sender_criteria:
+                search_criteria = f'SINCE {since_date} {sender_criteria}'
+            else:
+                search_criteria = f'SINCE {since_date}'
+
+            logger.info(f"IMAP search criteria: {search_criteria}")
 
             parsed_emails = []
 
