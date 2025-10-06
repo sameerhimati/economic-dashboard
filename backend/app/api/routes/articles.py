@@ -41,7 +41,7 @@ router = APIRouter(prefix="/articles", tags=["Articles"])
     description="Retrieve recent articles for the authenticated user, optionally grouped by category"
 )
 async def get_recent_articles(
-    limit: int = Query(20, ge=1, le=100, description="Maximum number of articles to return"),
+    limit: int = Query(20, ge=1, le=1000, description="Maximum number of articles to return"),
     group_by_category: bool = Query(False, description="Group articles by category"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
