@@ -12,7 +12,6 @@ from app.models.article import Article
 from app.models.article_source import ArticleSource
 from app.models.article_bookmark import ArticleBookmark
 from app.models.bookmark_list import BookmarkList
-from app.models.newsletter_bookmark import NewsletterBookmark
 
 __all__ = [
     "Base",
@@ -26,5 +25,4 @@ __all__ = [
     "ArticleSource",
     "ArticleBookmark",
     "BookmarkList",
-    "NewsletterBookmark",
 ]
