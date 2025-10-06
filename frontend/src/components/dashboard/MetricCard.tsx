@@ -40,7 +40,8 @@ export function MetricCard({ metric }: MetricCardProps) {
           "hover:from-card hover:to-accent/5",
           "hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10",
           "cursor-pointer",
-          "card-hover"
+          "card-hover",
+          "active:scale-[0.98]"
         )}
         onClick={() => {
           toast.info(metric?.name || 'Metric Details', {
@@ -52,10 +53,11 @@ export function MetricCard({ metric }: MetricCardProps) {
         {/* Bookmark/Save button */}
         <button
           className={cn(
-            "absolute top-2 right-2 h-6 w-6 z-10 transition-all flex items-center justify-center",
+            "absolute top-2 right-2 h-9 w-9 sm:h-6 sm:w-6 z-10 transition-all flex items-center justify-center",
             "hover:scale-110 active:scale-95",
-            bookmarked ? "opacity-100" : "opacity-0 group-hover:opacity-100",
-            bookmarked ? "text-yellow-500" : "text-muted-foreground hover:text-foreground"
+            bookmarked ? "opacity-100" : "opacity-100 sm:opacity-0 group-hover:opacity-100",
+            bookmarked ? "text-yellow-500" : "text-muted-foreground hover:text-foreground",
+            "rounded-md sm:rounded-none"
           )}
           onClick={(e) => {
             e.stopPropagation()
@@ -69,7 +71,7 @@ export function MetricCard({ metric }: MetricCardProps) {
             )
           }}
         >
-          <Star className={cn("h-4 w-4 transition-all", bookmarked && "fill-current")} />
+          <Star className={cn("h-5 w-5 sm:h-4 sm:w-4 transition-all", bookmarked && "fill-current")} />
         </button>
 
       {/* Subtle accent bar on left */}
@@ -82,16 +84,16 @@ export function MetricCard({ metric }: MetricCardProps) {
         )}
       />
 
-      <CardHeader className="pb-2 pl-5">
-        <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+      <CardHeader className="pb-2 pl-4 sm:pl-5 pr-12 sm:pr-8">
+        <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider line-clamp-1">
           {metric?.name || 'Unknown Metric'}
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="space-y-4 pl-5">
-        <div className="flex items-end justify-between gap-4">
+      <CardContent className="space-y-3 sm:space-y-4 pl-4 sm:pl-5 pr-4">
+        <div className="flex items-end justify-between gap-3 sm:gap-4">
           <div className="flex-1 min-w-0">
-            <div className="text-3xl font-bold tracking-tight metric-value mb-1">
+            <div className="text-2xl sm:text-3xl font-bold tracking-tight metric-value mb-1">
               <AnimatedNumber
                 value={metric?.value ?? 0}
                 formatValue={(val) => formatNumber(val)}
@@ -117,7 +119,7 @@ export function MetricCard({ metric }: MetricCardProps) {
           </div>
 
           {metric?.historicalData && metric.historicalData.length > 0 && (
-            <div className="w-20 h-12 flex-shrink-0">
+            <div className="w-16 h-10 sm:w-20 sm:h-12 flex-shrink-0">
               <SparkLine data={metric.historicalData} color={color} />
             </div>
           )}
@@ -130,12 +132,12 @@ export function MetricCard({ metric }: MetricCardProps) {
         )}
 
         {metric?.lastUpdated && (
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground/70">
+          <div className="flex items-center justify-between text-xs gap-2">
+            <span className="text-muted-foreground/70 truncate">
               Updated {new Date(metric.lastUpdated).toLocaleTimeString()}
             </span>
             {metric?.source && (
-              <span className="text-muted-foreground/50 text-[10px] uppercase tracking-wider">
+              <span className="text-muted-foreground/50 text-[10px] uppercase tracking-wider shrink-0">
                 {metric.source}
               </span>
             )}

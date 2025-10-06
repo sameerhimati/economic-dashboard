@@ -124,7 +124,7 @@ export function BookmarkButton({
           variant={variant}
           size={size}
           className={cn(
-            "gap-2 transition-colors",
+            "gap-2 transition-colors min-h-[44px] min-w-[44px]",
             isBookmarked && "text-primary",
             className
           )}

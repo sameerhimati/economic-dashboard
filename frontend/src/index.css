@@ -250,3 +250,26 @@ button, a, [role="button"] {
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
 }
+
+/* Hide scrollbar utility class */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile touch optimization */
+@media (hover: none) and (pointer: coarse) {
+  /* Increase tap target sizes for mobile */
+  button, a, [role="button"], [role="link"] {
+    min-height: 44px;
+  }
+
+  /* Prevent hover states from sticking on mobile */
+  .group:hover .group-hover\:opacity-100 {
+    opacity: 1;
+  }
+}

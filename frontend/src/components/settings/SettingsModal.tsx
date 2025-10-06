@@ -50,26 +50,26 @@ export function SettingsModal({ open, onOpenChange, theme, onThemeChange }: Sett
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
             <SettingsIcon className="h-5 w-5" />
             Dashboard Settings
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-sm">
             Customize your dashboard experience and preferences
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="space-y-6 py-2 sm:py-4">
           {/* Display Sections */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold">Display Sections</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
+            <div className="space-y-4">
+              <div className="flex items-start sm:items-center justify-between gap-3">
                 <Label htmlFor="today-feed" className="flex-1 cursor-pointer">
                   Today's Feed
-                  <p className="text-xs text-muted-foreground font-normal">
+                  <p className="text-xs text-muted-foreground font-normal mt-0.5">
                     Show day-specific economic insights
                   </p>
                 </Label>
@@ -77,13 +77,14 @@ export function SettingsModal({ open, onOpenChange, theme, onThemeChange }: Sett
                   id="today-feed"
                   checked={showTodayFeed}
                   onCheckedChange={() => toggleSection('showTodayFeed')}
+                  className="shrink-0"
                 />
               </div>
 
-              <div className="flex items-center justify-between">
+              <div className="flex items-start sm:items-center justify-between gap-3">
                 <Label htmlFor="favorites" className="flex-1 cursor-pointer">
                   Favorites Section
-                  <p className="text-xs text-muted-foreground font-normal">
+                  <p className="text-xs text-muted-foreground font-normal mt-0.5">
                     Show your bookmarked metrics
                   </p>
                 </Label>
@@ -91,13 +92,14 @@ export function SettingsModal({ open, onOpenChange, theme, onThemeChange }: Sett
                   id="favorites"
                   checked={showFavorites}
                   onCheckedChange={() => toggleSection('showFavorites')}
+                  className="shrink-0"
                 />
               </div>
 
-              <div className="flex items-center justify-between">
+              <div className="flex items-start sm:items-center justify-between gap-3">
                 <Label htmlFor="metrics" className="flex-1 cursor-pointer">
                   Additional Metrics
-                  <p className="text-xs text-muted-foreground font-normal">
+                  <p className="text-xs text-muted-foreground font-normal mt-0.5">
                     Show all economic indicators
                   </p>
                 </Label>
@@ -105,13 +107,14 @@ export function SettingsModal({ open, onOpenChange, theme, onThemeChange }: Sett
                   id="metrics"
                   checked={showMetrics}
                   onCheckedChange={() => toggleSection('showMetrics')}
+                  className="shrink-0"
                 />
               </div>
 
-              <div className="flex items-center justify-between">
+              <div className="flex items-start sm:items-center justify-between gap-3">
                 <Label htmlFor="breaking-news" className="flex-1 cursor-pointer">
                   Breaking News
-                  <p className="text-xs text-muted-foreground font-normal">
+                  <p className="text-xs text-muted-foreground font-normal mt-0.5">
                     Show latest economic updates
                   </p>
                 </Label>
@@ -119,13 +122,14 @@ export function SettingsModal({ open, onOpenChange, theme, onThemeChange }: Sett
                   id="breaking-news"
                   checked={showBreakingNews}
                   onCheckedChange={() => toggleSection('showBreakingNews')}
+                  className="shrink-0"
                 />
               </div>
 
-              <div className="flex items-center justify-between">
+              <div className="flex items-start sm:items-center justify-between gap-3">
                 <Label htmlFor="weekly-summary" className="flex-1 cursor-pointer">
                   Weekly Summary
-                  <p className="text-xs text-muted-foreground font-normal">
+                  <p className="text-xs text-muted-foreground font-normal mt-0.5">
                     Show weekly market overview
                   </p>
                 </Label>
@@ -133,6 +137,7 @@ export function SettingsModal({ open, onOpenChange, theme, onThemeChange }: Sett
                   id="weekly-summary"
                   checked={showWeeklySummary}
                   onCheckedChange={() => toggleSection('showWeeklySummary')}
+                  className="shrink-0"
                 />
               </div>
             </div>
@@ -178,28 +183,31 @@ export function SettingsModal({ open, onOpenChange, theme, onThemeChange }: Sett
                   variant={theme === 'light' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => onThemeChange('light')}
-                  className="gap-2"
+                  className="gap-1.5 sm:gap-2 text-xs sm:text-sm"
                 >
-                  <Sun className="h-4 w-4" />
-                  Light
+                  <Sun className="h-4 w-4 shrink-0" />
+                  <span className="hidden sm:inline">Light</span>
+                  <span className="sm:hidden">L</span>
                 </Button>
                 <Button
                   variant={theme === 'dark' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => onThemeChange('dark')}
-                  className="gap-2"
+                  className="gap-1.5 sm:gap-2 text-xs sm:text-sm"
                 >
-                  <Moon className="h-4 w-4" />
-                  Dark
+                  <Moon className="h-4 w-4 shrink-0" />
+                  <span className="hidden sm:inline">Dark</span>
+                  <span className="sm:hidden">D</span>
                 </Button>
                 <Button
                   variant={theme === 'system' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => onThemeChange('system')}
-                  className="gap-2"
+                  className="gap-1.5 sm:gap-2 text-xs sm:text-sm"
                 >
-                  <Monitor className="h-4 w-4" />
-                  System
+                  <Monitor className="h-4 w-4 shrink-0" />
+                  <span className="hidden sm:inline">System</span>
+                  <span className="sm:hidden">S</span>
                 </Button>
               </div>
             </div>

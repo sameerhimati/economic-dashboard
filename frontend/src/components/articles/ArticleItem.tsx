@@ -44,10 +44,10 @@ export function ArticleItem({ article, showBookmark = true, showCategory = false
   }
 
   return (
-    <div className="group flex items-start gap-4 py-3 px-4 rounded-lg transition-all hover:bg-accent/50 border border-transparent hover:border-border">
-      {/* Favicon */}
+    <div className="group flex items-start gap-3 sm:gap-4 py-3 sm:py-3 px-3 sm:px-4 rounded-lg transition-all hover:bg-accent/50 border border-transparent hover:border-border active:bg-accent/30">
+      {/* Favicon - Hide on mobile to save space */}
       {faviconUrl && (
-        <div className="shrink-0 mt-0.5">
+        <div className="hidden sm:block shrink-0 mt-0.5">
           <img
             src={faviconUrl}
             alt=""
@@ -65,37 +65,37 @@ export function ArticleItem({ article, showBookmark = true, showCategory = false
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="block group/link"
+            className="block group/link min-h-[44px] flex items-start"
           >
-            <div className="flex items-start gap-2">
+            <div className="flex items-start gap-2 w-full">
               <span className={cn(
-                "text-sm font-medium leading-relaxed transition-colors",
+                "text-sm sm:text-sm font-medium leading-relaxed transition-colors",
                 "text-foreground group-hover/link:text-primary",
-                "line-clamp-2 flex-1"
+                "line-clamp-3 sm:line-clamp-2 flex-1"
               )}>
                 {headline}
               </span>
-              <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground group-hover/link:text-primary transition-colors opacity-0 group-hover:opacity-100 mt-0.5" />
+              <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground group-hover/link:text-primary transition-colors opacity-60 sm:opacity-0 group-hover:opacity-100 mt-0.5" />
             </div>
           </a>
         ) : (
-          <div>
-            <span className="text-sm font-medium leading-relaxed text-foreground line-clamp-2 block">
+          <div className="min-h-[44px] flex items-start">
+            <span className="text-sm sm:text-sm font-medium leading-relaxed text-foreground line-clamp-3 sm:line-clamp-2 block">
               {headline}
             </span>
           </div>
         )}
 
         {/* Metadata row */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 flex-wrap text-xs">
+          <span className="text-muted-foreground">
             {timeAgo}
           </span>
 
           {/* Category badge (only show if showCategory is true) */}
           {showCategory && (
             <>
-              <span className="text-xs text-muted-foreground">•</span>
+              <span className="text-muted-foreground hidden sm:inline">•</span>
               <Badge variant="outline" className={cn("text-xs py-0 h-5", getCategoryColor(category))}>
                 {category}
               </Badge>
@@ -105,25 +105,26 @@ export function ArticleItem({ article, showBookmark = true, showCategory = false
           {/* Source indicator */}
           {source_count > 1 && (
             <>
-              <span className="text-xs text-muted-foreground">•</span>
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <span className="text-muted-foreground hidden sm:inline">•</span>
+              <div className="flex items-center gap-1 text-muted-foreground">
                 <Newspaper className="h-3 w-3" />
-                <span>{source_count} newsletters</span>
+                <span className="hidden sm:inline">{source_count} newsletters</span>
+                <span className="sm:hidden">{source_count}</span>
               </div>
             </>
           )}
         </div>
 
-        {/* Newsletter sources (expandable on hover) */}
+        {/* Newsletter sources (expandable on hover) - Hide on mobile */}
         {newsletter_subjects && newsletter_subjects.length > 0 && (
-          <div className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="hidden sm:block text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
             <span className="font-medium">Sources:</span> {newsletter_subjects.join(', ')}
           </div>
         )}
       </div>
 
       {showBookmark && (
-        <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="shrink-0 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
           <BookmarkButton articleId={id} size="sm" />
         </div>
       )}

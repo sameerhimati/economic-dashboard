@@ -61,20 +61,20 @@ export function Header() {
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 items-center justify-between px-4">
-          <div className="flex items-center gap-2.5">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            <h1 className="text-lg font-semibold tracking-tight">
+        <div className="container flex h-14 items-center justify-between px-3 sm:px-4">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
+            <h1 className="text-sm sm:text-lg font-semibold tracking-tight truncate">
               Economic Dashboard
             </h1>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setSettingsOpen(true)}
-              className="h-8 w-8"
+              className="h-9 w-9 sm:h-8 sm:w-8"
               title="Settings (Cmd+K)"
             >
               <Settings className="h-4 w-4" />
@@ -82,7 +82,7 @@ export function Header() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-8 sm:w-8">
                   {theme === 'light' ? (
                     <Sun className="h-4 w-4" />
                   ) : theme === 'dark' ? (
@@ -110,18 +110,23 @@ export function Header() {
 
             {user && (
               <>
-                <div className="flex items-center gap-3">
+                <div className="hidden md:flex items-center gap-3">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
                       {getInitials(user?.full_name, user?.email)}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="hidden sm:block">
+                  <div>
                     <p className="text-sm font-medium leading-none">{user?.full_name || user?.email || 'User'}</p>
                     <p className="text-xs text-muted-foreground mt-1">{user?.email || ''}</p>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={logout} className="h-8 w-8">
+                <Avatar className="h-8 w-8 md:hidden">
+                  <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
+                    {getInitials(user?.full_name, user?.email)}
+                  </AvatarFallback>
+                </Avatar>
+                <Button variant="ghost" size="icon" onClick={logout} className="h-9 w-9 sm:h-8 sm:w-8">
                   <LogOut className="h-4 w-4" />
                 </Button>
               </>

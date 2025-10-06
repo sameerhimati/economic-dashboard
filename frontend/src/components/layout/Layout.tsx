@@ -13,7 +13,7 @@ export function Layout({ children }: LayoutProps) {
     <div className={`min-h-screen ${gradientClass} transition-colors duration-500`}>
       <Header />
       <Navigation />
-      <main className="container mx-auto max-w-7xl px-4 py-8">
+      <main className="container mx-auto max-w-7xl px-3 sm:px-4 py-4 sm:py-6 md:py-8">
         {children}
       </main>
     </div>

@@ -115,24 +115,29 @@ export function Newsstand() {
   return (
     <Layout>
       <PageTransition>
-        <div className="space-y-8">
+        <div className="space-y-6 sm:space-y-8">
           {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <BookOpen className="h-8 w-8 text-primary" />
-                <h1 className="text-4xl font-bold tracking-tight">Newsstand</h1>
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                  <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-primary shrink-0" />
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">Newsstand</h1>
+                </div>
+                <p className="text-sm sm:text-base text-muted-foreground">
+                  Your curated real estate article feed
+                </p>
               </div>
-              <p className="text-muted-foreground">
-                Your curated real estate article feed • Currently featuring Bisnow, with more sources coming soon
-              </p>
             </div>
-            <div className="flex gap-2">
+
+            {/* Action Buttons - Mobile Optimized */}
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 onClick={handleResetDatabase}
                 disabled={resetting || fetching}
-                size="lg"
+                size="default"
                 variant="outline"
+                className="w-full sm:w-auto"
               >
                 {resetting ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -141,7 +146,12 @@ export function Newsstand() {
                 )}
                 Reset DB
               </Button>
-              <Button onClick={handleFetchNewsletters} disabled={fetching || resetting} size="lg">
+              <Button
+                onClick={handleFetchNewsletters}
+                disabled={fetching || resetting}
+                size="default"
+                className="w-full sm:w-auto"
+              >
                 {fetching ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
@@ -154,9 +164,9 @@ export function Newsstand() {
 
           {/* Article Count Summary - Always show when not loading */}
           {!loading && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Newspaper className="h-4 w-4" />
-              <span>
+            <div className="flex items-start gap-2 text-xs sm:text-sm text-muted-foreground">
+              <Newspaper className="h-4 w-4 shrink-0 mt-0.5" />
+              <span className="leading-relaxed">
                 {categories.length > 0 ? (
                   <>
                     {totalArticles} {totalArticles === 1 ? 'article' : 'articles'} from {newsletterCount} {newsletterCount === 1 ? 'newsletter' : 'newsletters'} across {categories.length} {categories.length === 1 ? 'category' : 'categories'}
@@ -205,22 +215,22 @@ export function Newsstand() {
             </Card>
           ) : (
             /* Articles by Category */
-            <Accordion type="multiple" className="space-y-4" defaultValue={categories.map(cat => cat.category)}>
+            <Accordion type="multiple" className="space-y-3 sm:space-y-4" defaultValue={categories.map(cat => cat.category)}>
               {categories.map((category, index) => (
                 <Card key={category.category} className="overflow-hidden animate-slide-up" style={{ animationDelay: `${index * 50}ms` }}>
                   <AccordionItem value={category.category} className="border-0">
-                    <AccordionTrigger className="px-6 hover:no-underline hover:bg-accent/50 transition-colors">
-                      <div className="flex items-center justify-between w-full pr-4">
-                        <div className="flex items-center gap-3">
-                          <Newspaper className="h-5 w-5 text-primary" />
-                          <span className="text-lg font-semibold">{category.category}</span>
+                    <AccordionTrigger className="px-4 sm:px-6 hover:no-underline hover:bg-accent/50 transition-colors">
+                      <div className="flex items-center justify-between w-full pr-2 sm:pr-4 gap-2">
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                          <Newspaper className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
+                          <span className="text-base sm:text-lg font-semibold truncate">{category.category}</span>
                         </div>
-                        <Badge variant="secondary" className="ml-auto mr-2">
-                          {category.article_count} {category.article_count === 1 ? 'article' : 'articles'}
+                        <Badge variant="secondary" className="ml-auto mr-1 sm:mr-2 shrink-0 text-xs">
+                          {category.article_count}
                         </Badge>
                       </div>
                     </AccordionTrigger>
-                    <AccordionContent className="px-6 pb-2">
+                    <AccordionContent className="px-2 sm:px-6 pb-2">
                       <ArticleList
                         articles={category.articles}
                         emptyMessage={`No articles in ${category.category}`}
