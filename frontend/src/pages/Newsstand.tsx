@@ -149,12 +149,18 @@ export function Newsstand() {
             </div>
           </div>
 
-          {/* Article Count Summary */}
-          {!loading && categories.length > 0 && (
+          {/* Article Count Summary - Always show when not loading */}
+          {!loading && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Newspaper className="h-4 w-4" />
               <span>
-                {totalArticles} {totalArticles === 1 ? 'article' : 'articles'} across {categories.length} {categories.length === 1 ? 'category' : 'categories'}
+                {categories.length > 0 ? (
+                  <>
+                    {totalArticles} {totalArticles === 1 ? 'article' : 'articles'} across {categories.length} {categories.length === 1 ? 'category' : 'categories'}
+                  </>
+                ) : (
+                  'No articles loaded yet - click "Fetch Newsletters" to get started'
+                )}
               </span>
             </div>
           )}
