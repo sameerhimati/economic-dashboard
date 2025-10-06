@@ -356,6 +356,8 @@ class EmailService:
         # Strategy 1: Find "Read more here" links and work backwards to find headline
         read_more_links = soup.find_all('a', string=lambda s: s and 'read more' in s.lower())
 
+        logger.debug(f"Found {len(read_more_links)} 'Read more' links")
+
         for link in read_more_links:
             url = link.get('href', '')
             if not self._is_valid_article_url(url):
@@ -383,31 +385,47 @@ class EmailService:
                 })
                 seen_headlines.add(headline)
 
-        # Strategy 2: Look for bold headlines with nearby links (fallback)
+        # Strategy 2: Look for all links with bisnow.com URLs and find nearby headlines
         if len(articles) < 5:
-            for tag in soup.find_all(['strong', 'b', 'h2', 'h3']):
-                text = tag.get_text(strip=True).rstrip(':').strip()
+            logger.debug("Using fallback strategy to find articles")
+            all_links = soup.find_all('a', href=True)
 
-                # Skip if too short, too long, or already seen
-                if not text or len(text) < 10 or len(text) > 300 or text in seen_headlines:
+            for link in all_links:
+                url = link.get('href', '')
+                if not self._is_valid_article_url(url):
                     continue
 
-                # Skip common section headers
-                skip_patterns = [
-                    'best of bisnow', 'best of the rest', 'quote of the day',
-                    'brewing in', 'job board', 'presented by'
-                ]
-                if any(pattern in text.lower() for pattern in skip_patterns):
-                    continue
+                # Look for a nearby bold/strong tag (the headline)
+                headline = None
 
-                url = self._find_article_url(tag)
+                # Try to find previous bold element (within reasonable distance)
+                current = link
+                for _ in range(10):
+                    current = current.find_previous(['strong', 'b', 'h1', 'h2', 'h3'])
+                    if current:
+                        text = current.get_text(strip=True).rstrip(':').strip()
 
-                if url:  # Only add if we found a URL
+                        # Skip common section headers
+                        skip_patterns = [
+                            'best of bisnow', 'best of the rest', 'quote of the day',
+                            'brewing in', 'job board', 'presented by', 'read more'
+                        ]
+                        if any(pattern in text.lower() for pattern in skip_patterns):
+                            continue
+
+                        # Valid headline found
+                        if text and 10 < len(text) < 300 and text not in seen_headlines:
+                            headline = text
+                            break
+
+                if headline:
                     articles.append({
-                        "headline": text,
-                        "url": url or ""
+                        "headline": headline,
+                        "url": url
                     })
-                    seen_headlines.add(text)
+                    seen_headlines.add(headline)
+
+        logger.info(f"Extracted {len(articles)} articles from email")
 
         # Limit to first 20 articles to avoid noise
         return articles[:20]
@@ -757,10 +775,15 @@ class EmailService:
 
             parsed_emails = []
 
-            # Select INBOX
-            self.connection.select('INBOX')
-
-            logger.info(f"Searching INBOX for emails: {search_criteria}")
+            # Select All Mail to search across all folders/labels (including Promotions)
+            # Gmail stores emails in [Gmail]/All Mail which includes Primary, Promotions, etc.
+            try:
+                self.connection.select('"[Gmail]/All Mail"')
+                logger.info(f"Searching [Gmail]/All Mail for emails: {search_criteria}")
+            except Exception as e:
+                logger.warning(f"Failed to select [Gmail]/All Mail: {e}, falling back to INBOX")
+                self.connection.select('INBOX')
+                logger.info(f"Searching INBOX for emails: {search_criteria}")
 
             # Search emails
             status, messages = self.connection.search(None, search_criteria)
