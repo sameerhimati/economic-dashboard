@@ -245,9 +245,43 @@ class EmailService:
             logger.warning(f"Error decoding subject '{subject[:50]}...': {str(e)}")
             return subject
 
+    def _identify_category_from_sender(self, sender: str) -> str:
+        """
+        Identify newsletter category from sender name.
+
+        Bisnow puts the newsletter name in the sender field like:
+        "Bisnow Houston Morning Brief <news@publications.bisnow.com>"
+        "Bisnow Texas Tea <news@publications.bisnow.com>"
+
+        Args:
+            sender: Email sender field (name + email)
+
+        Returns:
+            str: Newsletter category or "Unknown"
+        """
+        try:
+            # Extract the display name from sender (before the <email> part)
+            # Example: "Bisnow Houston Morning Brief <...>" -> "Bisnow Houston Morning Brief"
+            match = re.match(r'^([^<]+)', sender)
+            if match:
+                sender_name = match.group(1).strip()
+
+                # Remove "Bisnow " prefix if present
+                if sender_name.lower().startswith('bisnow '):
+                    category = sender_name[7:].strip()  # Remove "Bisnow "
+                    if category:
+                        return category
+
+                # If no "Bisnow " prefix, return the whole sender name
+                return sender_name
+        except Exception as e:
+            logger.debug(f"Error extracting category from sender: {str(e)}")
+
+        return "Unknown"
+
     def _identify_category(self, subject: str) -> str:
         """
-        Identify newsletter category from subject line.
+        Identify newsletter category from subject line (legacy method).
 
         Args:
             subject: Email subject line
@@ -305,6 +339,11 @@ class EmailService:
         """
         Extract article headline and URL pairs from HTML.
 
+        For Bisnow emails, articles follow a pattern:
+        - Bold headline (often ending with ":")
+        - Description paragraph
+        - "Read more here" link with the article URL
+
         Args:
             soup: BeautifulSoup object
 
@@ -314,31 +353,61 @@ class EmailService:
         articles = []
         seen_headlines = set()
 
-        # Look for h1, h2, h3 tags
-        for tag in soup.find_all(['h1', 'h2', 'h3']):
-            text = tag.get_text(strip=True)
-            if text and len(text) > 10:  # Filter out very short text
+        # Strategy 1: Find "Read more here" links and work backwards to find headline
+        read_more_links = soup.find_all('a', string=lambda s: s and 'read more' in s.lower())
+
+        for link in read_more_links:
+            url = link.get('href', '')
+            if not self._is_valid_article_url(url):
+                continue
+
+            # Find the preceding bold/strong tag (the headline)
+            headline = None
+            current = link
+
+            # Search up to 5 elements before the link
+            for _ in range(5):
+                current = current.find_previous(['strong', 'b', 'h1', 'h2', 'h3'])
+                if current:
+                    text = current.get_text(strip=True)
+                    # Filter out section headers and short text
+                    if text and 10 < len(text) < 300:
+                        # Remove trailing colon if present
+                        headline = text.rstrip(':').strip()
+                        break
+
+            if headline and headline not in seen_headlines:
+                articles.append({
+                    "headline": headline,
+                    "url": url
+                })
+                seen_headlines.add(headline)
+
+        # Strategy 2: Look for bold headlines with nearby links (fallback)
+        if len(articles) < 5:
+            for tag in soup.find_all(['strong', 'b', 'h2', 'h3']):
+                text = tag.get_text(strip=True).rstrip(':').strip()
+
+                # Skip if too short, too long, or already seen
+                if not text or len(text) < 10 or len(text) > 300 or text in seen_headlines:
+                    continue
+
+                # Skip common section headers
+                skip_patterns = [
+                    'best of bisnow', 'best of the rest', 'quote of the day',
+                    'brewing in', 'job board', 'presented by'
+                ]
+                if any(pattern in text.lower() for pattern in skip_patterns):
+                    continue
+
                 url = self._find_article_url(tag)
 
-                if text not in seen_headlines:
+                if url:  # Only add if we found a URL
                     articles.append({
                         "headline": text,
                         "url": url or ""
                     })
                     seen_headlines.add(text)
-
-        # Look for bold text that might be headlines
-        for tag in soup.find_all(['b', 'strong']):
-            text = tag.get_text(strip=True)
-            # Only include if it's relatively short (likely a headline, not a paragraph)
-            if text and 10 < len(text) < 200 and text not in seen_headlines:
-                url = self._find_article_url(tag)
-
-                articles.append({
-                    "headline": text,
-                    "url": url or ""
-                })
-                seen_headlines.add(text)
 
         # Limit to first 20 articles to avoid noise
         return articles[:20]
@@ -748,8 +817,8 @@ class EmailService:
                     if not text_content and html_content:
                         text_content = self._extract_text_from_html(html_content)
 
-                    # Identify category
-                    category = self._identify_category(subject)
+                    # Identify category from sender name (Bisnow puts category in sender)
+                    category = self._identify_category_from_sender(sender)
 
                     # Parse content and extract key points
                     key_points = self._parse_email_content(
