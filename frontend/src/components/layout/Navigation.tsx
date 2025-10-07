@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, TrendingUp, Newspaper, Calendar, BookOpen, Bookmark, Settings, Menu, X } from 'lucide-react'
+import { LayoutDashboard, Calendar, BookOpen, Menu, X } from 'lucide-react'
 import { useLocation, Link } from 'react-router-dom'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -8,31 +8,17 @@ interface NavItem {
   icon: React.ElementType
   label: string
   href: string
-  isRoute?: boolean
 }
 
 const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Overview', href: '/', isRoute: true },
-  { icon: TrendingUp, label: 'Metrics', href: '#metrics' },
-  { icon: Newspaper, label: 'Breaking News', href: '#breaking' },
-  { icon: Calendar, label: 'Weekly Summary', href: '#weekly' },
-  { icon: BookOpen, label: 'Newsstand', href: '/newsstand', isRoute: true },
-  { icon: Bookmark, label: 'Bookmarks', href: '/bookmarks', isRoute: true },
-  { icon: Settings, label: 'Settings', href: '/settings', isRoute: true },
+  { icon: LayoutDashboard, label: 'Overview', href: '/' },
+  { icon: Calendar, label: "Today's Focus", href: '/focus' },
+  { icon: BookOpen, label: 'Newsstand', href: '/newsstand' },
 ]
 
 export function Navigation() {
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
-  const handleScroll = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    e.preventDefault()
-    const element = document.querySelector(href)
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' })
-    }
-    setMobileMenuOpen(false)
-  }
 
   const handleNavClick = () => {
     setMobileMenuOpen(false)
@@ -58,44 +44,26 @@ export function Navigation() {
           </Button>
         </div>
 
-        {/* Desktop Navigation - horizontal scroll */}
-        <div className="hidden md:flex gap-1 overflow-x-auto py-2 scrollbar-hide">
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex gap-1 py-2">
           {navItems.map((item) => {
             const Icon = item.icon
-            const isActive = item.isRoute && location.pathname === item.href
-
-            if (item.isRoute) {
-              return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={cn(
-                    'flex items-center gap-2 px-4 py-2 rounded-lg transition-colors whitespace-nowrap',
-                    'hover:bg-accent hover:text-accent-foreground',
-                    'text-sm font-medium',
-                    isActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </Link>
-              )
-            }
+            const isActive = location.pathname === item.href
 
             return (
-              <a
+              <Link
                 key={item.href}
-                href={item.href}
-                onClick={(e) => handleScroll(e, item.href)}
+                to={item.href}
                 className={cn(
                   'flex items-center gap-2 px-4 py-2 rounded-lg transition-colors whitespace-nowrap',
                   'hover:bg-accent hover:text-accent-foreground',
-                  'text-sm font-medium text-muted-foreground'
+                  'text-sm font-medium',
+                  isActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'
                 )}
               >
                 <Icon className="h-4 w-4" />
                 <span>{item.label}</span>
-              </a>
+              </Link>
             )
           })}
         </div>
@@ -106,43 +74,24 @@ export function Navigation() {
             <div className="py-2 space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon
-                const isActive = item.isRoute && location.pathname === item.href
-
-                if (item.isRoute) {
-                  return (
-                    <Link
-                      key={item.href}
-                      to={item.href}
-                      onClick={handleNavClick}
-                      className={cn(
-                        'flex items-center gap-3 px-3 py-3 rounded-lg transition-colors',
-                        'hover:bg-accent hover:text-accent-foreground',
-                        'text-sm font-medium',
-                        'active:scale-98',
-                        isActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'
-                      )}
-                    >
-                      <Icon className="h-5 w-5" />
-                      <span>{item.label}</span>
-                    </Link>
-                  )
-                }
+                const isActive = location.pathname === item.href
 
                 return (
-                  <a
+                  <Link
                     key={item.href}
-                    href={item.href}
-                    onClick={(e) => handleScroll(e, item.href)}
+                    to={item.href}
+                    onClick={handleNavClick}
                     className={cn(
                       'flex items-center gap-3 px-3 py-3 rounded-lg transition-colors',
                       'hover:bg-accent hover:text-accent-foreground',
-                      'text-sm font-medium text-muted-foreground',
-                      'active:scale-98'
+                      'text-sm font-medium',
+                      'active:scale-98',
+                      isActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'
                     )}
                   >
                     <Icon className="h-5 w-5" />
                     <span>{item.label}</span>
-                  </a>
+                  </Link>
                 )
               })}
             </div>

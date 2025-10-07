@@ -19,9 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { BookOpen, Download, Loader2, Newspaper, FolderOpen, RefreshCw, Calendar, ListFilter } from 'lucide-react'
+import { BookOpen, Download, Loader2, Newspaper, FolderOpen, RefreshCw, Calendar, ListFilter, Bookmark } from 'lucide-react'
 import { articleService } from '@/services/articleService'
 import { newsletterService } from '@/services/newsletterService'
+import { bookmarkService } from '@/services/bookmarkService'
 import { toast } from 'sonner'
 import type { ArticlesByCategory } from '@/types/article'
 import { apiClient } from '@/services/api'
@@ -35,10 +36,39 @@ export function Newsstand() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [fetchDays, setFetchDays] = useState(7)
   const [articleLimit, setArticleLimit] = useState(500)
+  const [showBookmarksOnly, setShowBookmarksOnly] = useState(false)
+  const [bookmarkedArticleIds, setBookmarkedArticleIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     loadArticles()
   }, [refreshKey, articleLimit])
+
+  useEffect(() => {
+    loadBookmarkedArticles()
+  }, [refreshKey])
+
+  const loadBookmarkedArticles = async () => {
+    try {
+      const lists = await bookmarkService.getLists()
+      const articleIds = new Set<string>()
+
+      // Fetch articles from all bookmark lists
+      await Promise.all(
+        lists.map(async (list) => {
+          try {
+            const articles = await bookmarkService.getArticlesInList(list.id)
+            articles.forEach(article => articleIds.add(article.id))
+          } catch (error) {
+            console.warn(`Could not fetch articles for list ${list.id}`, error)
+          }
+        })
+      )
+
+      setBookmarkedArticleIds(articleIds)
+    } catch (error) {
+      console.error('Error loading bookmarked articles:', error)
+    }
+  }
 
   const loadArticles = async () => {
     try {
@@ -119,7 +149,17 @@ export function Newsstand() {
     }
   }
 
-  const totalArticles = categories?.reduce((sum, cat) => sum + cat.article_count, 0) ?? 0
+  // Filter categories based on bookmarks
+  const displayedCategories = showBookmarksOnly
+    ? categories.map(category => ({
+        ...category,
+        articles: category.articles.filter(article => bookmarkedArticleIds.has(article.id)),
+        article_count: category.articles.filter(article => bookmarkedArticleIds.has(article.id)).length
+      })).filter(category => category.article_count > 0)
+    : categories
+
+  const totalArticles = displayedCategories?.reduce((sum, cat) => sum + cat.article_count, 0) ?? 0
+  const totalBookmarkedArticles = bookmarkedArticleIds.size
 
   return (
     <Layout>
@@ -204,6 +244,15 @@ export function Newsstand() {
                   )}
                   Fetch Newsletters ({fetchDays} days)
                 </Button>
+                <Button
+                  onClick={() => setShowBookmarksOnly(!showBookmarksOnly)}
+                  size="default"
+                  variant={showBookmarksOnly ? "default" : "outline"}
+                  className="w-full sm:w-auto"
+                >
+                  <Bookmark className={`mr-2 h-4 w-4 ${showBookmarksOnly ? 'fill-current' : ''}`} />
+                  {showBookmarksOnly ? `Showing ${totalBookmarkedArticles} Bookmarks` : 'Show Bookmarks Only'}
+                </Button>
               </div>
             </div>
           </div>
@@ -261,8 +310,8 @@ export function Newsstand() {
             </Card>
           ) : (
             /* Articles by Category */
-            <Accordion type="multiple" className="space-y-3 sm:space-y-4" defaultValue={categories.map(cat => cat.category)}>
-              {categories.map((category, index) => (
+            <Accordion type="multiple" className="space-y-3 sm:space-y-4" defaultValue={displayedCategories.map(cat => cat.category)}>
+              {displayedCategories.map((category, index) => (
                 <Card key={category.category} className="overflow-hidden animate-slide-up" style={{ animationDelay: `${index * 50}ms` }}>
                   <AccordionItem value={category.category} className="border-0">
                     <AccordionTrigger className="px-4 sm:px-6 hover:no-underline hover:bg-accent/50 transition-colors">

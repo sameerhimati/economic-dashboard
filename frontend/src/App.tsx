@@ -2,8 +2,8 @@ import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { Dashboard } from '@/pages/Dashboard'
+import { TodaysFocus } from '@/pages/TodaysFocus'
 import { Newsstand } from '@/pages/Newsstand'
-import { Bookmarks } from '@/pages/Bookmarks'
 import { Settings } from '@/pages/Settings'
 import { Login } from '@/pages/Login'
 import { Register } from '@/pages/Register'
@@ -39,18 +39,18 @@ function App() {
           }
         />
         <Route
-          path="/newsstand"
+          path="/focus"
           element={
             <ProtectedRoute>
-              <Newsstand />
+              <TodaysFocus />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/bookmarks"
+          path="/newsstand"
           element={
             <ProtectedRoute>
-              <Bookmarks />
+              <Newsstand />
             </ProtectedRoute>
           }
         />
