@@ -572,12 +572,8 @@ class FREDService:
         """
         series_id = series_id.upper()
 
-        # Validate series
-        if series_id not in SERIES_METADATA:
-            raise FREDAPIError(
-                message=f"Unknown series: {series_id}. Must be one of: {list(SERIES_METADATA.keys())}",
-                status_code=400
-            )
+        # Note: We allow any series ID - FRED API will validate if it exists
+        # SERIES_METADATA is kept for reference but not enforced
 
         # Check cache
         cache_key = self._get_cache_key(
@@ -626,7 +622,7 @@ class FREDService:
                 logger.warning(f"Invalid value in {series_id}: {value_str}")
                 continue
 
-        metadata = SERIES_METADATA[series_id]
+        metadata = SERIES_METADATA.get(series_id, {"name": series_id, "unit": "Unknown"})
         result = {
             "series_id": series_id,
             "series_name": metadata["name"],
