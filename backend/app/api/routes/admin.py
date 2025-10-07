@@ -22,7 +22,7 @@ async def backfill_metrics(
     years: int = Query(default=5, ge=1, le=10, description="Number of years of historical data to backfill"),
     batch_size: int = Query(default=50, ge=10, le=500, description="Number of records per batch"),
     metrics: Optional[str] = Query(default=None, description="Comma-separated list of metric codes (or empty for all)"),
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(get_current_active_user),  # Changed from admin to any authenticated user
     db: AsyncSession = Depends(get_db)
 ):
     """
