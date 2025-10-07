@@ -28,6 +28,7 @@ from app.api.routes import (
     bookmarks_router,
     admin_router,
 )
+from app.api.routes.daily_metrics import router as daily_metrics_router
 
 # Configure logging to stdout (not stderr) so Railway shows INFO logs in white, not red
 logging.basicConfig(
@@ -251,6 +252,7 @@ app.include_router(articles_router)
 app.include_router(user_settings_router)
 app.include_router(bookmarks_router)
 app.include_router(admin_router, prefix="/admin", tags=["admin"])
+app.include_router(daily_metrics_router, prefix="/api", tags=["daily-metrics"])
 
 
 # Root endpoint

@@ -70,6 +70,12 @@ class Settings(BaseSettings):
     FRED_API_TIMEOUT: int = Field(default=30, description="FRED API request timeout in seconds")
     FRED_RATE_LIMIT_PER_MINUTE: int = Field(default=120, description="FRED API rate limit")
 
+    # BEA API Settings (Optional - for GDP data)
+    BEA_API_KEY: Optional[str] = Field(default=None, description="BEA API key from https://apps.bea.gov/api/signup/")
+
+    # BLS API Settings (Optional - for unemployment and labor data)
+    BLS_API_KEY: Optional[str] = Field(default=None, description="BLS API key from https://www.bls.gov/developers/")
+
     # Email Settings for Newsletter Parsing (Optional - users configure their own)
     EMAIL_ADDRESS: Optional[str] = Field(default=None, description="Email address for IMAP connection (deprecated - users configure their own)")
     EMAIL_APP_PASSWORD: Optional[str] = Field(default=None, description="Email app-specific password for IMAP (deprecated - users configure their own)")
