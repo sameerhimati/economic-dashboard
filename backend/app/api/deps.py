@@ -181,6 +181,23 @@ async def get_current_superuser(
     return current_user
 
 
+async def get_current_admin_user(
+    current_user: User = Depends(get_current_superuser),
+) -> User:
+    """
+    Get the current user and verify they have admin privileges.
+
+    This is an alias for get_current_superuser to make intent clearer in admin routes.
+
+    Args:
+        current_user: Current authenticated superuser
+
+    Returns:
+        User: Current admin user
+    """
+    return current_user
+
+
 async def get_optional_current_user(
     db: AsyncSession = Depends(get_db),
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(

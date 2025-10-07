@@ -11,7 +11,7 @@ from sqlalchemy import select, and_
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.database import get_db
-from app.core.auth import get_current_active_user, get_current_admin_user
+from app.api.deps import get_current_active_user, get_current_admin_user
 from app.models.user import User
 from app.models.metric_data_point import MetricDataPoint
 from app.services.fred_service import FREDService
