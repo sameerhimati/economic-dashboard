@@ -12,6 +12,9 @@ from app.models.article import Article
 from app.models.article_source import ArticleSource
 from app.models.article_bookmark import ArticleBookmark
 from app.models.bookmark_list import BookmarkList
+from app.models.metric_data_point import MetricDataPoint
+from app.models.daily_metric_config import DailyMetricConfig
+from app.models.metric_insight import MetricInsight
 
 __all__ = [
     "Base",
@@ -25,4 +28,7 @@ __all__ = [
     "ArticleSource",
     "ArticleBookmark",
     "BookmarkList",
+    "MetricDataPoint",
+    "DailyMetricConfig",
+    "MetricInsight",
 ]
