@@ -15,53 +15,41 @@ class MetricChange(BaseModel):
 
 
 class MetricSignificance(BaseModel):
-    """Statistical significance metrics."""
-    z_score: float = Field(description="Z-score (std deviations from mean)")
+    """Statistical significance metrics (simplified for frontend)."""
     percentile: float = Field(description="Percentile rank (0-100)")
     is_outlier: bool = Field(description="Whether value is a statistical outlier")
-    avg_30d: float = Field(description="30-day rolling average")
-    avg_90d: float = Field(description="90-day rolling average")
-    avg_1y: float = Field(description="1-year rolling average")
 
 
-class MetricAnalysis(BaseModel):
-    """Complete analysis for a metric."""
-    metric_code: str
-    current_value: float
-    current_date: str
-    changes: MetricChange
-    significance: MetricSignificance
-    alerts: List[str] = Field(description="Contextual alerts")
-    context: str = Field(description="Human-readable context summary")
+class SparklinePoint(BaseModel):
+    """Single point in sparkline data."""
+    date: str
+    value: float
 
 
 class DailyMetric(BaseModel):
-    """Single metric in daily briefing."""
+    """Single metric in daily briefing (flattened structure for frontend)."""
     code: str
     display_name: str
     description: str
-    source: str
     unit: str
-    current_value: float
-    current_date: str
-    analysis: MetricAnalysis
-
-
-class DailySummary(BaseModel):
-    """Summary statistics for the day."""
-    total_metrics: int
-    metrics_up: int = Field(description="Metrics trending up")
-    metrics_down: int = Field(description="Metrics trending down")
-    metrics_with_alerts: int = Field(description="Metrics with significant alerts")
-    outliers_count: int = Field(description="Number of statistical outliers")
+    latest_value: float
+    latest_date: str
+    sparkline_data: List[SparklinePoint] = Field(description="Last 30 days for mini chart")
+    alerts: List[str] = Field(description="Contextual alerts")
+    context: str = Field(description="Human-readable context summary")
+    changes: MetricChange
+    significance: MetricSignificance
 
 
 class DailyMetricsResponse(BaseModel):
-    """Response for GET /api/daily-metrics/daily"""
+    """Response for GET /api/daily-metrics/daily (flattened structure)."""
     date: str
     weekday: int = Field(description="0=Monday, 6=Sunday")
     theme: str = Field(description="Theme for this weekday")
-    summary: DailySummary
+    summary: str = Field(description="AI-generated summary text for the day")
+    metrics_up: int = Field(description="Metrics trending up")
+    metrics_down: int = Field(description="Metrics trending down")
+    alerts_count: int = Field(description="Total number of metrics with alerts")
     metrics: List[DailyMetric]
 
 
@@ -84,18 +72,26 @@ class TopMover(BaseModel):
     """Top moving metric for weekly reflection."""
     code: str
     display_name: str
-    category: str
-    change_pct: float
-    direction: str = Field(description="'up' or 'down'")
-    significance: str = Field(description="Why this move matters")
+    change_percent: float = Field(description="Percentage change for the week")
+    latest_value: float = Field(description="Current value of the metric")
+    unit: str = Field(description="Unit of measurement")
+
+
+class ThresholdCrossing(BaseModel):
+    """Significant threshold crossing event."""
+    code: str
+    display_name: str
+    threshold_type: str = Field(description="Type of threshold (e.g., 'above_7_percent')")
+    description: str = Field(description="Human-readable description of the crossing")
 
 
 class WeeklyReflectionResponse(BaseModel):
     """Response for GET /api/daily-metrics/weekly-reflection"""
-    week_ending: str
+    week_start: str = Field(description="Start date of the week (YYYY-MM-DD)")
+    week_end: str = Field(description="End date of the week (YYYY-MM-DD)")
+    summary: str = Field(description="AI-generated summary of the week")
     top_movers: List[TopMover]
-    key_themes: List[str]
-    summary: str
+    threshold_crossings: List[ThresholdCrossing] = Field(description="Significant threshold events")
 
 
 class RefreshMetricRequest(BaseModel):

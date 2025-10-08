@@ -25,14 +25,14 @@ from app.config.metrics_config import (
 from app.schemas.daily_metrics import (
     DailyMetricsResponse,
     DailyMetric,
-    DailySummary,
-    MetricAnalysis,
     MetricChange,
     MetricSignificance,
+    SparklinePoint,
     HistoricalMetricResponse,
     HistoricalDataPoint,
     WeeklyReflectionResponse,
     TopMover,
+    ThresholdCrossing,
     RefreshMetricResponse,
     RefreshMetricRequest
 )
@@ -82,13 +82,10 @@ async def get_daily_metrics(
                 date=target_date.date().isoformat(),
                 weekday=weekday,
                 theme=theme,
-                summary=DailySummary(
-                    total_metrics=0,
-                    metrics_up=0,
-                    metrics_down=0,
-                    metrics_with_alerts=0,
-                    outliers_count=0
-                ),
+                summary="No metrics available for today.",
+                metrics_up=0,
+                metrics_down=0,
+                alerts_count=0,
                 metrics=[]
             )
 
@@ -131,23 +128,24 @@ async def get_daily_metrics(
                     historical_data=historical_data
                 )
 
-                # Build response
+                # Get sparkline data (last 30 days)
+                sparkline_data = await _get_sparkline_data(db, code, days=30)
+
+                # Build flattened response
                 daily_metric = DailyMetric(
                     code=code,
                     display_name=metric_config["display_name"],
                     description=metric_config["description"],
-                    source=metric_config["source"],
                     unit=metric_config["unit"],
-                    current_value=current_data["value"],
-                    current_date=current_data["date"].isoformat(),
-                    analysis=MetricAnalysis(
-                        metric_code=code,
-                        current_value=current_data["value"],
-                        current_date=current_data["date"].isoformat(),
-                        changes=MetricChange(**analysis["changes"]),
-                        significance=MetricSignificance(**analysis["significance"]),
-                        alerts=analysis["alerts"],
-                        context=analysis["context"]
+                    latest_value=current_data["value"],
+                    latest_date=current_data["date"].isoformat(),
+                    sparkline_data=sparkline_data,
+                    alerts=analysis["alerts"],
+                    context=analysis["context"],
+                    changes=MetricChange(**analysis["changes"]),
+                    significance=MetricSignificance(
+                        percentile=analysis["significance"]["percentile"],
+                        is_outlier=analysis["significance"]["is_outlier"]
                     )
                 )
 
@@ -163,9 +161,6 @@ async def get_daily_metrics(
                 if analysis["alerts"]:
                     metrics_with_alerts += 1
 
-                if analysis["significance"].get("is_outlier"):
-                    outliers_count += 1
-
             except Exception as e:
                 logger.error(f"Error processing metric {metric_config['code']}: {str(e)}")
                 continue
@@ -173,20 +168,23 @@ async def get_daily_metrics(
         # Close FRED service
         await fred_service.close()
 
-        # Build summary
-        summary = DailySummary(
-            total_metrics=len(daily_metrics),
+        # Generate summary text
+        summary_text = _generate_daily_summary(
+            theme=theme,
             metrics_up=metrics_up,
             metrics_down=metrics_down,
-            metrics_with_alerts=metrics_with_alerts,
-            outliers_count=outliers_count
+            alerts_count=metrics_with_alerts,
+            total_metrics=len(daily_metrics)
         )
 
         return DailyMetricsResponse(
             date=target_date.date().isoformat(),
             weekday=weekday,
             theme=theme,
-            summary=summary,
+            summary=summary_text,
+            metrics_up=metrics_up,
+            metrics_down=metrics_down,
+            alerts_count=metrics_with_alerts,
             metrics=daily_metrics
         )
 
@@ -282,6 +280,7 @@ async def get_weekly_reflection(
         fred_service = FREDService()
         analysis_service = MetricAnalysisService()
         top_movers = []
+        threshold_crossings = []
 
         # Analyze each metric for weekly change
         for code in all_codes[:15]:  # Limit to 15 for performance
@@ -310,8 +309,14 @@ async def get_weekly_reflection(
                     top_movers.append({
                         "code": code,
                         "change_pct": change_pct,
+                        "current_value": current["value"],
                         "config": config
                     })
+
+                # Check for threshold crossings
+                crossing = _detect_threshold_crossings(code, config, historical)
+                if crossing:
+                    threshold_crossings.append(crossing)
 
             except Exception as e:
                 logger.error(f"Error analyzing {code} for weekly: {str(e)}")
@@ -329,23 +334,20 @@ async def get_weekly_reflection(
             movers_response.append(TopMover(
                 code=mover["code"],
                 display_name=config.get("display_name", mover["code"]),
-                category=WEEKDAY_THEMES.get(config.get("weekday", 0), "General"),
-                change_pct=round(mover["change_pct"], 2),
-                direction="up" if mover["change_pct"] > 0 else "down",
-                significance=_generate_significance_text(mover["change_pct"], config)
+                change_percent=round(mover["change_pct"], 2),
+                latest_value=round(mover["current_value"], 2),
+                unit=config.get("unit", "")
             ))
-
-        # Generate key themes
-        key_themes = _generate_key_themes(movers_response)
 
         # Generate summary
         summary = _generate_weekly_summary(movers_response)
 
         return WeeklyReflectionResponse(
-            week_ending=week_end.date().isoformat(),
+            week_start=week_start.date().isoformat(),
+            week_end=week_end.date().isoformat(),
+            summary=summary,
             top_movers=movers_response,
-            key_themes=key_themes,
-            summary=summary
+            threshold_crossings=threshold_crossings
         )
 
     except Exception as e:
@@ -483,6 +485,129 @@ async def _get_historical_data(
         return []
 
 
+async def _get_sparkline_data(
+    db: AsyncSession,
+    code: str,
+    days: int = 30
+) -> List[SparklinePoint]:
+    """Get last N days of data for sparkline chart."""
+    try:
+        cutoff = datetime.now() - timedelta(days=days)
+
+        stmt = select(MetricDataPoint).where(
+            and_(
+                MetricDataPoint.metric_code == code,
+                MetricDataPoint.date >= cutoff
+            )
+        ).order_by(MetricDataPoint.date.asc())
+
+        result = await db.execute(stmt)
+        points = result.scalars().all()
+
+        return [
+            SparklinePoint(date=p.date.isoformat(), value=float(p.value))
+            for p in points
+        ]
+
+    except Exception as e:
+        logger.error(f"Error getting sparkline data for {code}: {str(e)}")
+        return []
+
+
+def _generate_daily_summary(
+    theme: str,
+    metrics_up: int,
+    metrics_down: int,
+    alerts_count: int,
+    total_metrics: int
+) -> str:
+    """Generate a human-readable daily summary."""
+    if total_metrics == 0:
+        return f"{theme} metrics unavailable today."
+
+    # Build summary based on trends
+    if metrics_up > metrics_down:
+        trend = "showing positive momentum"
+    elif metrics_down > metrics_up:
+        trend = "showing weakness"
+    else:
+        trend = "showing mixed signals"
+
+    # Add alert context
+    alert_text = ""
+    if alerts_count > 0:
+        alert_text = f" {alerts_count} metric{'s' if alerts_count > 1 else ''} triggered alert thresholds."
+
+    return f"{theme} indicators {trend} today. Tracking {total_metrics} key metrics.{alert_text}"
+
+
+def _detect_threshold_crossings(
+    metric_code: str,
+    config: dict,
+    historical_data: List[dict]
+) -> Optional[ThresholdCrossing]:
+    """Detect if metric crossed significant threshold this week."""
+    try:
+        if not historical_data or len(historical_data) < 7:
+            return None
+
+        current_value = historical_data[-1]["value"]
+        week_ago_value = historical_data[-7]["value"] if len(historical_data) >= 7 else None
+
+        # Define thresholds per metric
+        thresholds = {
+            "MORTGAGE30US": {
+                "threshold": 7.0,
+                "type": "above_7_percent",
+                "description": "Mortgage rates crossed 7% threshold"
+            },
+            "T10Y2Y": {
+                "threshold": 0.0,
+                "type": "yield_curve_inversion",
+                "description": "Yield curve inverted"
+            },
+            "VIXCLS": {
+                "threshold": 30.0,
+                "type": "high_volatility",
+                "description": "Market volatility exceeded 30"
+            },
+            "UNRATE": {
+                "threshold": 4.5,
+                "type": "unemployment_spike",
+                "description": "Unemployment rate crossed 4.5%"
+            },
+            "DFF": {
+                "threshold": 5.0,
+                "type": "fed_funds_milestone",
+                "description": "Federal Funds Rate crossed 5%"
+            }
+        }
+
+        if metric_code not in thresholds:
+            return None
+
+        threshold_config = thresholds[metric_code]
+        threshold_value = threshold_config["threshold"]
+
+        # Check if crossed threshold this week (in either direction)
+        if week_ago_value and (
+            (week_ago_value < threshold_value <= current_value) or
+            (week_ago_value > threshold_value >= current_value)
+        ):
+            return ThresholdCrossing(
+                code=metric_code,
+                display_name=config.get("display_name", metric_code),
+                threshold_type=threshold_config["type"],
+                description=threshold_config["description"]
+            )
+
+        return None
+
+    except Exception as e:
+        logger.error(f"Error detecting threshold crossing for {metric_code}: {str(e)}")
+        return None
+
+
 def _generate_significance_text(change_pct: float, config: dict) -> str:
     """Generate significance text for a mover."""
     if abs(change_pct) > 10:
@@ -493,27 +618,13 @@ def _generate_significance_text(change_pct: float, config: dict) -> str:
         return "Moderate change - worth monitoring"
 
 
-def _generate_key_themes(movers: List[TopMover]) -> List[str]:
-    """Generate key themes from top movers."""
-    themes = []
-
-    # Categorize by theme
-    for mover in movers[:5]:
-        if "Interest" in mover.category or "Fed" in mover.category:
-            themes.append(f"{mover.category}: {mover.display_name} {mover.direction} {abs(mover.change_pct):.1f}%")
-        elif "Housing" in mover.category or "Real Estate" in mover.category:
-            themes.append(f"Housing: {mover.display_name} {mover.direction} {abs(mover.change_pct):.1f}%")
-
-    return themes[:3] if themes else ["Markets showed mixed activity this week"]
-
-
 def _generate_weekly_summary(movers: List[TopMover]) -> str:
     """Generate weekly summary text."""
     if not movers:
         return "Markets were relatively stable this week with no major movements."
 
-    up_count = sum(1 for m in movers if m.direction == "up")
-    down_count = sum(1 for m in movers if m.direction == "down")
+    up_count = sum(1 for m in movers if m.change_percent > 0)
+    down_count = sum(1 for m in movers if m.change_percent < 0)
 
     if up_count > down_count:
         return f"This week saw broadly positive momentum with {up_count} key indicators rising. Notable moves include {movers[0].display_name} and {movers[1].display_name if len(movers) > 1 else 'other indicators'}."

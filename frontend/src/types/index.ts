@@ -85,3 +85,6 @@ export interface ApiError {
 
 // Re-export newsletter types
 export * from './newsletter'
+
+// Re-export daily metrics types
+export * from './dailyMetrics'
