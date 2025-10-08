@@ -1,0 +1,33 @@
+name: Deploy and Backfill Data
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  backfill-production:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: |
+          curl -fsSL https://railway.app/install.sh | sh
+          echo "$HOME/.railway/bin" >> $GITHUB_PATH
+
+      - name: Wait for Railway deployment
+        run: |
+          echo "Waiting 60 seconds for Railway to deploy the latest changes..."
+          sleep 60
+
+      - name: Run backfill on Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          cd backend
+          railway link ${{ secrets.RAILWAY_PROJECT_ID }}
+          railway run python scripts/backfill_metrics.py --years 2 --batch-size 100
