@@ -1,14 +1,15 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   LineChart,
   Line,
@@ -17,7 +18,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Brush,
 } from 'recharts'
 import { dailyMetricsService } from '@/services/dailyMetricsService'
 import type { HistoricalMetricsResponse } from '@/types/dailyMetrics'
@@ -31,10 +31,15 @@ import {
   BookOpen,
   Lightbulb,
   History,
-  Link as LinkIcon
+  Link as LinkIcon,
+  ArrowUpRight,
+  ArrowDownRight,
+  Gauge,
+  ExternalLink
 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { getMetricEducation, hasMetricEducation } from '@/data/metricEncyclopedia'
+import { cn } from '@/lib/utils'
 
 interface ChartModalProps {
   open: boolean
@@ -61,11 +66,36 @@ function ChartModal({
 
   const education = hasMetricEducation(metricCode) ? getMetricEducation(metricCode) : null
 
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await dailyMetricsService.getHistoricalMetrics(
+        metricCode,
+        timeRange
+      )
+
+      if (!response.data || response.data.length === 0) {
+        setError(`No data available for ${metricName} in the ${timeRange} range.`)
+      } else {
+        setData(response)
+      }
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to load chart data. Please try again.'
+      )
+    } finally {
+      setLoading(false)
+    }
+  }, [metricCode, timeRange, metricName])
+
   useEffect(() => {
     if (open && metricCode) {
       fetchData()
     }
-  }, [open, metricCode, timeRange])
+  }, [open, metricCode, fetchData])
 
   // Handle Escape key to close modal
   useEffect(() => {
@@ -117,31 +147,6 @@ function ChartModal({
     return () => modal.removeEventListener('keydown', handleTab as EventListener)
   }, [open, loading, activeTab])
 
-  const fetchData = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const response = await dailyMetricsService.getHistoricalMetrics(
-        metricCode,
-        timeRange
-      )
-
-      if (!response.data || response.data.length === 0) {
-        setError(`No data available for ${metricName} in the ${timeRange} range.`)
-      } else {
-        setData(response)
-      }
-    } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to load chart data. Please try again.'
-      )
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const formatYAxis = (value: number) => {
     if (Math.abs(value) >= 1e9) {
       return `${(value / 1e9).toFixed(1)}B`
@@ -178,445 +183,633 @@ function ChartModal({
     return { label: 'Historically Low', variant: 'outline' }
   }
 
+  const getTrend = () => {
+    if (!data) return null
+    const { current, average } = data.statistics
+    const percentDiff = ((current - average) / average) * 100
+    return {
+      direction: percentDiff > 0 ? 'up' : percentDiff < 0 ? 'down' : 'neutral',
+      percent: Math.abs(percentDiff),
+    }
+  }
+
+  const trend = getTrend()
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent ref={modalRef} className="max-w-7xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-2xl">
-            <BarChart3 className="h-6 w-6 text-primary" />
-            {metricName}
-            <span className="text-sm font-normal opacity-70">({metricCode})</span>
-          </DialogTitle>
+      <DialogContent
+        ref={modalRef}
+        className="max-w-6xl max-h-[90vh] overflow-y-auto p-0"
+      >
+        {/* Clean Header with Summary */}
+        <DialogHeader className="px-8 pt-8 pb-6 border-b bg-gradient-to-b from-background to-muted/10">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 space-y-2">
+              <div className="flex items-center gap-3 flex-wrap">
+                <DialogTitle className="text-3xl font-bold tracking-tight">
+                  {metricName}
+                </DialogTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 text-xs font-medium hover:bg-primary/5 hover:text-primary hover:border-primary/30 transition-all"
+                  asChild
+                >
+                  <a
+                    href={`https://fred.stlouisfed.org/series/${metricCode}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    View on FRED
+                  </a>
+                </Button>
+              </div>
+              <DialogDescription className="text-base text-muted-foreground">
+                {education?.whatIsIt || 'View historical trends and detailed analysis'}
+              </DialogDescription>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="outline" className="font-mono text-xs">
+                  {metricCode}
+                </Badge>
+                {data && trend && (
+                  <Badge
+                    variant={trend.direction === 'up' ? 'default' : trend.direction === 'down' ? 'secondary' : 'outline'}
+                    className={cn(
+                      "gap-1.5",
+                      trend.direction === 'up' && "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20",
+                      trend.direction === 'down' && "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
+                    )}
+                  >
+                    {trend.direction === 'up' ? (
+                      <ArrowUpRight className="h-3 w-3" />
+                    ) : trend.direction === 'down' ? (
+                      <ArrowDownRight className="h-3 w-3" />
+                    ) : (
+                      <Gauge className="h-3 w-3" />
+                    )}
+                    {trend.percent > 0 && `${trend.percent.toFixed(1)}% ${trend.direction === 'up' ? 'above' : 'below'} average`}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
         </DialogHeader>
 
-        {/* Main Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ModalTab)}>
-          <TabsList className="grid w-full grid-cols-4 bg-muted">
-            <TabsTrigger value="chart" className="gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
-              <BarChart3 className="h-4 w-4" />
-              Chart
-            </TabsTrigger>
-            <TabsTrigger value="about" className="gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
-              <BookOpen className="h-4 w-4" />
-              About
-            </TabsTrigger>
-            <TabsTrigger value="interpret" className="gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
-              <Lightbulb className="h-4 w-4" />
-              How to Interpret
-            </TabsTrigger>
-            <TabsTrigger value="history" className="gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
-              <History className="h-4 w-4" />
-              Historical Context
-            </TabsTrigger>
-          </TabsList>
+        {/* Main Content Area */}
+        <div className="px-8 py-6">
+          {/* Prominent Navigation Tabs */}
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ModalTab)} className="space-y-6">
+            <TabsList className="grid w-full grid-cols-4 h-12 bg-muted/50 p-1 rounded-lg">
+              <TabsTrigger
+                value="chart"
+                className="gap-2 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                <BarChart3 className="h-4 w-4" />
+                <span className="hidden sm:inline">Chart & Stats</span>
+                <span className="sm:hidden">Chart</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="interpret"
+                className="gap-2 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                <Lightbulb className="h-4 w-4" />
+                <span className="hidden sm:inline">How to Read</span>
+                <span className="sm:hidden">Read</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="about"
+                className="gap-2 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                <BookOpen className="h-4 w-4" />
+                <span className="hidden sm:inline">About</span>
+                <span className="sm:hidden">About</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="history"
+                className="gap-2 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                <History className="h-4 w-4" />
+                <span className="hidden sm:inline">History</span>
+                <span className="sm:hidden">History</span>
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Tab 1: Chart */}
-          <TabsContent value="chart" className="space-y-4">
-            {/* Time Range Tabs */}
-            <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-              <TabsList className="grid w-full grid-cols-4 bg-muted">
-                <TabsTrigger value="30d" className="data-[state=active]:bg-background data-[state=active]:text-foreground">30 Days</TabsTrigger>
-                <TabsTrigger value="90d" className="data-[state=active]:bg-background data-[state=active]:text-foreground">90 Days</TabsTrigger>
-                <TabsTrigger value="1y" className="data-[state=active]:bg-background data-[state=active]:text-foreground">1 Year</TabsTrigger>
-                <TabsTrigger value="5y" className="data-[state=active]:bg-background data-[state=active]:text-foreground">5 Years</TabsTrigger>
-              </TabsList>
-            </Tabs>
+          {/* Tab 1: Chart & Stats */}
+          <TabsContent value="chart" className="space-y-6 mt-0">
+            {/* Time Range Selector */}
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Historical Trend</h3>
+              <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
+                <TabsList className="h-9 bg-muted/50">
+                  <TabsTrigger value="30d" className="text-xs px-3">30D</TabsTrigger>
+                  <TabsTrigger value="90d" className="text-xs px-3">90D</TabsTrigger>
+                  <TabsTrigger value="1y" className="text-xs px-3">1Y</TabsTrigger>
+                  <TabsTrigger value="5y" className="text-xs px-3">5Y</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
 
             {loading ? (
-              <div className="space-y-4">
-                <Skeleton className="h-96 w-full" />
-                <div className="grid grid-cols-4 gap-4">
-                  <Skeleton className="h-24" />
-                  <Skeleton className="h-24" />
-                  <Skeleton className="h-24" />
-                  <Skeleton className="h-24" />
+              <div className="space-y-6">
+                <Skeleton className="h-80 w-full rounded-xl" />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <Skeleton className="h-28 rounded-xl" />
+                  <Skeleton className="h-28 rounded-xl" />
+                  <Skeleton className="h-28 rounded-xl" />
+                  <Skeleton className="h-28 rounded-xl" />
                 </div>
               </div>
             ) : error ? (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
+              <Alert variant="destructive" className="border-2">
+                <AlertCircle className="h-5 w-5" />
+                <AlertDescription className="text-base">{error}</AlertDescription>
               </Alert>
             ) : data ? (
               <div className="space-y-6">
-                {/* Chart */}
-                <Card>
-                  <CardContent className="pt-6">
-                    <ResponsiveContainer width="100%" height={400}>
-                      <LineChart data={data.data}>
-                        <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                        <XAxis
-                          dataKey="date"
-                          tickFormatter={formatXAxis}
-                          tick={{ fontSize: 12 }}
-                          tickLine={false}
-                        />
-                        <YAxis
-                          tickFormatter={formatYAxis}
-                          tick={{ fontSize: 12 }}
-                          tickLine={false}
-                          width={80}
-                        />
-                        <Tooltip
-                          content={({ active, payload }) => {
-                            if (!active || !payload || payload.length === 0) return null
-                            const dataPoint = payload[0]
-                            return (
-                              <Card className="border-primary/50 shadow-lg">
-                                <CardContent className="p-3 space-y-1">
-                                  <p className="text-xs text-muted-foreground">
-                                    {formatXAxis(dataPoint.payload.date)}
-                                  </p>
-                                  <p className="text-lg font-bold tabular-nums">
-                                    {dataPoint.value?.toLocaleString('en-US', {
-                                      minimumFractionDigits: 2,
-                                      maximumFractionDigits: 2,
-                                    })}
-                                    <span className="text-sm text-muted-foreground ml-1">
-                                      {data.unit}
-                                    </span>
-                                  </p>
-                                </CardContent>
-                              </Card>
-                            )
-                          }}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="value"
-                          stroke="hsl(var(--primary))"
-                          strokeWidth={2}
-                          dot={false}
-                          animationDuration={500}
-                        />
-                        <Brush
-                          dataKey="date"
-                          height={30}
-                          stroke="hsl(var(--primary))"
-                          tickFormatter={formatXAxis}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
+                {/* Clean Chart with White Background */}
+                <div className="bg-white dark:bg-zinc-900 rounded-xl border-2 border-border p-6 shadow-sm">
+                  <ResponsiveContainer width="100%" height={360}>
+                    <LineChart data={data.data} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="hsl(var(--border))"
+                        opacity={0.3}
+                        vertical={false}
+                      />
+                      <XAxis
+                        dataKey="date"
+                        tickFormatter={formatXAxis}
+                        tick={{ fontSize: 13, fill: 'hsl(var(--muted-foreground))' }}
+                        tickLine={false}
+                        axisLine={{ stroke: 'hsl(var(--border))' }}
+                        dy={10}
+                      />
+                      <YAxis
+                        tickFormatter={formatYAxis}
+                        tick={{ fontSize: 13, fill: 'hsl(var(--muted-foreground))' }}
+                        tickLine={false}
+                        axisLine={{ stroke: 'hsl(var(--border))' }}
+                        width={70}
+                        dx={-5}
+                      />
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (!active || !payload || payload.length === 0) return null
+                          const dataPoint = payload[0]
+                          return (
+                            <div className="bg-popover border-2 border-primary/30 rounded-lg shadow-xl p-4 backdrop-blur-sm">
+                              <p className="text-xs font-medium text-muted-foreground mb-1">
+                                {formatXAxis(dataPoint.payload.date)}
+                              </p>
+                              <p className="text-2xl font-bold tabular-nums">
+                                {dataPoint.value?.toLocaleString('en-US', {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                                <span className="text-sm font-normal text-muted-foreground ml-2">
+                                  {data.unit}
+                                </span>
+                              </p>
+                            </div>
+                          )
+                        }}
+                        cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 1, strokeDasharray: '4 4' }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="value"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth={3}
+                        dot={false}
+                        animationDuration={800}
+                        animationEasing="ease-in-out"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
 
-                {/* Statistics */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <StatCard
-                    icon={<Activity className="h-4 w-4" />}
-                    label="Current"
-                    value={data.statistics.current}
-                    unit={data.unit}
-                  />
-                  <StatCard
-                    icon={<BarChart3 className="h-4 w-4" />}
-                    label="Average"
-                    value={data.statistics.average}
-                    unit={data.unit}
-                  />
-                  <StatCard
-                    icon={<TrendingUp className="h-4 w-4 text-green-600" />}
-                    label="High"
-                    value={data.statistics.high}
-                    unit={data.unit}
-                    variant="success"
-                  />
-                  <StatCard
-                    icon={<TrendingDown className="h-4 w-4 text-red-600" />}
-                    label="Low"
-                    value={data.statistics.low}
-                    unit={data.unit}
-                    variant="danger"
-                  />
+                {/* Enhanced Statistics Cards */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Key Statistics</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <EnhancedStatCard
+                      icon={<Activity className="h-5 w-5" />}
+                      label="Current Value"
+                      value={data.statistics.current}
+                      unit={data.unit}
+                      variant="current"
+                    />
+                    <EnhancedStatCard
+                      icon={<BarChart3 className="h-5 w-5" />}
+                      label="Average"
+                      value={data.statistics.average}
+                      unit={data.unit}
+                      variant="neutral"
+                    />
+                    <EnhancedStatCard
+                      icon={<TrendingUp className="h-5 w-5" />}
+                      label="Highest"
+                      value={data.statistics.high}
+                      unit={data.unit}
+                      variant="high"
+                    />
+                    <EnhancedStatCard
+                      icon={<TrendingDown className="h-5 w-5" />}
+                      label="Lowest"
+                      value={data.statistics.low}
+                      unit={data.unit}
+                      variant="low"
+                    />
+                  </div>
                 </div>
               </div>
             ) : null}
           </TabsContent>
 
-          {/* Tab 2: About */}
-          <TabsContent value="about" className="space-y-6">
+          {/* Tab 3: About */}
+          <TabsContent value="about" className="space-y-6 mt-0">
             {education ? (
               <>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <BookOpen className="h-5 w-5 text-primary" />
-                      What is this metric?
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-base leading-relaxed">{education.whatIsIt}</p>
-                  </CardContent>
-                </Card>
+                <div className="bg-card rounded-xl border-2 p-6">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="p-3 bg-primary/10 rounded-lg">
+                      <BookOpen className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold mb-2">What is this metric?</h3>
+                      <p className="text-base leading-relaxed text-muted-foreground">
+                        {education.whatIsIt}
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <AlertCircle className="h-5 w-5 text-primary" />
-                      Why it matters
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
+                <div>
+                  <h3 className="text-xl font-bold mb-4">Why It Matters</h3>
+                  <div className="bg-muted/50 rounded-xl p-6 border-2">
+                    <ul className="space-y-4">
                       {education.whyItMatters.map((point, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <span className="text-primary mt-1">•</span>
-                          <span className="flex-1">{point}</span>
+                        <li key={idx} className="flex items-start gap-3">
+                          <div className="p-1.5 bg-primary/10 rounded-md mt-0.5">
+                            <AlertCircle className="h-4 w-4 text-primary" />
+                          </div>
+                          <span className="flex-1 text-base leading-relaxed">{point}</span>
                         </li>
                       ))}
                     </ul>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
 
                 {data && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Activity className="h-5 w-5 text-primary" />
-                        Current Status
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="opacity-70">Current value:</span>
+                  <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl border-2 border-primary/20 p-6">
+                    <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+                      <Activity className="h-6 w-6 text-primary" />
+                      Current Status
+                    </h3>
+                    <div className="space-y-5">
+                      <div className="flex items-center justify-between p-4 bg-background/60 rounded-lg">
+                        <span className="text-base font-medium text-muted-foreground">Current Value</span>
+                        <span className="font-bold text-2xl tabular-nums">
+                          {data.statistics.current.toLocaleString('en-US', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                          <span className="text-base font-normal text-muted-foreground ml-2">{data.unit}</span>
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between p-4 bg-background/60 rounded-lg">
+                        <span className="text-base font-medium text-muted-foreground">Historical Position</span>
+                        <div className="text-right">
                           <span className="font-bold text-xl tabular-nums">
-                            {data.statistics.current.toLocaleString('en-US', {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}{' '}
-                            <span className="text-sm opacity-60">{data.unit}</span>
+                            {getPercentile(data.statistics.current, data.statistics.high, data.statistics.low)}th
+                            <span className="text-sm font-normal text-muted-foreground ml-1">percentile</span>
                           </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="opacity-70">Percentile:</span>
-                          <div className="text-right">
-                            <span className="font-semibold">
-                              {getPercentile(data.statistics.current, data.statistics.high, data.statistics.low)}th
-                            </span>
-                            <p className="text-xs opacity-60">
-                              Higher than {getPercentile(data.statistics.current, data.statistics.high, data.statistics.low)}% of values
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="opacity-70">Status:</span>
-                          <Badge variant={getStatusLabel(getPercentile(data.statistics.current, data.statistics.high, data.statistics.low)).variant}>
-                            {getStatusLabel(getPercentile(data.statistics.current, data.statistics.high, data.statistics.low)).label}
-                          </Badge>
+                          <p className="text-sm text-muted-foreground mt-0.5">
+                            Higher than {getPercentile(data.statistics.current, data.statistics.high, data.statistics.low)}% of historical values
+                          </p>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                      <div className="flex items-center justify-between p-4 bg-background/60 rounded-lg">
+                        <span className="text-base font-medium text-muted-foreground">Status</span>
+                        <Badge
+                          variant={getStatusLabel(getPercentile(data.statistics.current, data.statistics.high, data.statistics.low)).variant}
+                          className="text-sm px-4 py-1.5"
+                        >
+                          {getStatusLabel(getPercentile(data.statistics.current, data.statistics.high, data.statistics.low)).label}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
                 )}
+
+                {/* Data Source Section */}
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-xl border-2 border-blue-200/50 dark:border-blue-800/50 p-6">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-blue-500/10 rounded-lg">
+                        <ExternalLink className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold mb-1 text-blue-900 dark:text-blue-100">Official Data Source</h3>
+                        <p className="text-sm text-blue-700/80 dark:text-blue-300/80">
+                          View complete dataset and download historical data
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="default"
+                      className="gap-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+                      asChild
+                    >
+                      <a
+                        href={`https://fred.stlouisfed.org/series/${metricCode}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        View on FRED
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  </div>
+                </div>
               </>
             ) : (
-              <Alert>
-                <BookOpen className="h-4 w-4" />
-                <AlertDescription>
-                  Educational content for this metric is coming soon.
+              <Alert className="border-2">
+                <BookOpen className="h-5 w-5" />
+                <AlertDescription className="text-base">
+                  Educational content for this metric is coming soon. We're working on adding comprehensive information about what this metric measures and why it matters.
                 </AlertDescription>
               </Alert>
             )}
           </TabsContent>
 
-          {/* Tab 3: How to Interpret */}
-          <TabsContent value="interpret" className="space-y-6">
+          {/* Tab 2: How to Interpret - FIRST for Education */}
+          <TabsContent value="interpret" className="space-y-6 mt-0">
             {education ? (
               <>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <BarChart3 className="h-5 w-5 text-primary" />
-                      Reading the Numbers
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="border-l-4 border-red-600 pl-4 bg-red-50 dark:bg-red-950/20 py-3 rounded-r">
-                        <div className="font-semibold text-red-700 dark:text-red-400 mb-1">
-                          Low: {education.readingTheNumbers.low.range}
+                {/* Simple Explainer at Top */}
+                <div className="bg-primary/5 border-2 border-primary/20 rounded-xl p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-primary/10 rounded-lg">
+                      <Lightbulb className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold mb-2">Quick Guide</h3>
+                      <p className="text-base leading-relaxed text-muted-foreground">
+                        {education.whatIsIt}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reading the Numbers - Enhanced Visual */}
+                <div>
+                  <h3 className="text-xl font-bold mb-4">How to Read the Numbers</h3>
+                  <div className="space-y-4">
+                    <div className="border-2 border-green-500/30 bg-green-50/50 dark:bg-green-950/30 rounded-xl p-5">
+                      <div className="flex items-start gap-4">
+                        <div className="p-2 bg-green-500/20 rounded-lg">
+                          <TrendingUp className="h-5 w-5 text-green-700 dark:text-green-400" />
                         </div>
-                        <p className="text-sm text-red-900/70 dark:text-red-200/70">
-                          {education.readingTheNumbers.low.meaning}
-                        </p>
-                      </div>
-                      <div className="border-l-4 border-yellow-600 pl-4 bg-yellow-50 dark:bg-yellow-950/20 py-3 rounded-r">
-                        <div className="font-semibold text-yellow-700 dark:text-yellow-400 mb-1">
-                          Normal: {education.readingTheNumbers.normal.range}
+                        <div className="flex-1">
+                          <div className="text-lg font-bold text-green-700 dark:text-green-400 mb-1">
+                            High: {education.readingTheNumbers.high.range}
+                          </div>
+                          <p className="text-base text-green-900/80 dark:text-green-100/80">
+                            {education.readingTheNumbers.high.meaning}
+                          </p>
                         </div>
-                        <p className="text-sm text-yellow-900/70 dark:text-yellow-200/70">
-                          {education.readingTheNumbers.normal.meaning}
-                        </p>
-                      </div>
-                      <div className="border-l-4 border-green-600 pl-4 bg-green-50 dark:bg-green-950/20 py-3 rounded-r">
-                        <div className="font-semibold text-green-700 dark:text-green-400 mb-1">
-                          High: {education.readingTheNumbers.high.range}
-                        </div>
-                        <p className="text-sm text-green-900/70 dark:text-green-200/70">
-                          {education.readingTheNumbers.high.meaning}
-                        </p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Lightbulb className="h-5 w-5 text-primary" />
-                      What to Watch For
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
+                    <div className="border-2 border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/30 rounded-xl p-5">
+                      <div className="flex items-start gap-4">
+                        <div className="p-2 bg-blue-500/20 rounded-lg">
+                          <Activity className="h-5 w-5 text-blue-700 dark:text-blue-400" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-lg font-bold text-blue-700 dark:text-blue-400 mb-1">
+                            Normal: {education.readingTheNumbers.normal.range}
+                          </div>
+                          <p className="text-base text-blue-900/80 dark:text-blue-100/80">
+                            {education.readingTheNumbers.normal.meaning}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border-2 border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/30 rounded-xl p-5">
+                      <div className="flex items-start gap-4">
+                        <div className="p-2 bg-amber-500/20 rounded-lg">
+                          <TrendingDown className="h-5 w-5 text-amber-700 dark:text-amber-400" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-lg font-bold text-amber-700 dark:text-amber-400 mb-1">
+                            Low: {education.readingTheNumbers.low.range}
+                          </div>
+                          <p className="text-base text-amber-900/80 dark:text-amber-100/80">
+                            {education.readingTheNumbers.low.meaning}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* What to Watch For */}
+                <div>
+                  <h3 className="text-xl font-bold mb-4">What to Watch For</h3>
+                  <div className="bg-muted/50 rounded-xl p-6 border-2">
+                    <ul className="space-y-4">
                       {education.whatToWatch.map((point, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <TrendingUp className="h-4 w-4 text-primary mt-1 shrink-0" />
-                          <span className="flex-1">{point}</span>
+                        <li key={idx} className="flex items-start gap-3">
+                          <div className="p-1.5 bg-primary/10 rounded-md mt-0.5">
+                            <AlertCircle className="h-4 w-4 text-primary" />
+                          </div>
+                          <span className="flex-1 text-base leading-relaxed">{point}</span>
                         </li>
                       ))}
                     </ul>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <AlertCircle className="h-5 w-5 text-primary" />
-                      Key Thresholds
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {education.keyThresholds.map((threshold, idx) => (
-                        <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-                          <Badge variant="outline" className="shrink-0">
-                            {threshold.value}
-                          </Badge>
-                          <span className="text-sm">{threshold.meaning}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                {/* Key Thresholds */}
+                <div>
+                  <h3 className="text-xl font-bold mb-4">Important Thresholds</h3>
+                  <div className="space-y-3">
+                    {education.keyThresholds.map((threshold, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-start gap-4 p-4 rounded-xl bg-card border-2 hover:border-primary/30 transition-colors"
+                      >
+                        <Badge variant="secondary" className="shrink-0 text-sm px-3 py-1 font-mono">
+                          {threshold.value}
+                        </Badge>
+                        <span className="text-base flex-1">{threshold.meaning}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </>
             ) : (
-              <Alert>
-                <Lightbulb className="h-4 w-4" />
-                <AlertDescription>
-                  Interpretation guidance for this metric is coming soon.
+              <Alert className="border-2">
+                <Lightbulb className="h-5 w-5" />
+                <AlertDescription className="text-base">
+                  Detailed interpretation guidance for this metric is coming soon. Check back later for insights on how to read and understand this data.
                 </AlertDescription>
               </Alert>
             )}
           </TabsContent>
 
           {/* Tab 4: Historical Context */}
-          <TabsContent value="history" className="space-y-6">
+          <TabsContent value="history" className="space-y-6 mt-0">
             {education ? (
               <>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <History className="h-5 w-5 text-primary" />
-                      Notable Events
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {education.historicalEvents.map((event, idx) => (
-                        <div key={idx} className="border-l-2 border-primary/50 pl-4 pb-4 last:pb-0">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge variant="secondary">{event.year}</Badge>
-                            <span className="font-semibold">{event.event}</span>
+                <div>
+                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <History className="h-6 w-6 text-primary" />
+                    Notable Historical Events
+                  </h3>
+                  <div className="space-y-4">
+                    {education.historicalEvents.map((event, idx) => (
+                      <div
+                        key={idx}
+                        className="relative pl-8 pb-6 last:pb-0 border-l-2 border-primary/30 ml-3"
+                      >
+                        {/* Timeline dot */}
+                        <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-primary border-2 border-background" />
+
+                        <div className="bg-card rounded-xl border-2 p-5 hover:border-primary/30 transition-colors">
+                          <div className="flex items-center gap-3 mb-3">
+                            <Badge variant="secondary" className="text-sm font-bold px-3 py-1">
+                              {event.year}
+                            </Badge>
+                            <span className="font-bold text-lg">{event.event}</span>
                           </div>
-                          <p className="text-sm text-muted-foreground">{event.impact}</p>
+                          <p className="text-base text-muted-foreground leading-relaxed">
+                            {event.impact}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {education.relatedMetrics.length > 0 && (
+                  <div>
+                    <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                      <LinkIcon className="h-6 w-6 text-primary" />
+                      Related Metrics
+                    </h3>
+                    <div className="space-y-3">
+                      {education.relatedMetrics.map((related, idx) => (
+                        <div
+                          key={idx}
+                          className="p-5 rounded-xl bg-muted/50 hover:bg-muted border-2 border-transparent hover:border-primary/30 transition-all cursor-pointer"
+                        >
+                          <div className="flex items-start gap-4">
+                            <Badge variant="outline" className="shrink-0 text-sm font-mono px-3 py-1">
+                              {related.code}
+                            </Badge>
+                            <div className="flex-1">
+                              <div className="font-bold text-base mb-2">{related.name}</div>
+                              <p className="text-base text-muted-foreground leading-relaxed">
+                                {related.relationship}
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
-                  </CardContent>
-                </Card>
-
-                {education.relatedMetrics.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <LinkIcon className="h-5 w-5 text-primary" />
-                        Related Metrics to Compare
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {education.relatedMetrics.map((related, idx) => (
-                          <div key={idx} className="p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-                            <div className="flex items-start gap-3">
-                              <Badge variant="outline" className="shrink-0">
-                                {related.code}
-                              </Badge>
-                              <div className="flex-1">
-                                <div className="font-medium mb-1">{related.name}</div>
-                                <p className="text-sm text-muted-foreground">
-                                  {related.relationship}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
+                  </div>
                 )}
               </>
             ) : (
-              <Alert>
-                <History className="h-4 w-4" />
-                <AlertDescription>
-                  Historical context for this metric is coming soon.
+              <Alert className="border-2">
+                <History className="h-5 w-5" />
+                <AlertDescription className="text-base">
+                  Historical context and related metrics for this indicator are coming soon. Check back later for detailed timeline of major events.
                 </AlertDescription>
               </Alert>
             )}
           </TabsContent>
         </Tabs>
+        </div>
       </DialogContent>
     </Dialog>
   )
 }
 
-interface StatCardProps {
+interface EnhancedStatCardProps {
   icon: React.ReactNode
   label: string
   value: number
   unit: string
-  variant?: 'default' | 'success' | 'danger'
+  variant: 'current' | 'neutral' | 'high' | 'low'
 }
 
-function StatCard({ icon, label, value, unit, variant = 'default' }: StatCardProps) {
+function EnhancedStatCard({ icon, label, value, unit, variant }: EnhancedStatCardProps) {
+  const variantStyles = {
+    current: {
+      border: 'border-primary/40',
+      bg: 'bg-primary/5',
+      iconBg: 'bg-primary/10',
+      iconColor: 'text-primary',
+      ring: 'ring-2 ring-primary/20',
+    },
+    neutral: {
+      border: 'border-border',
+      bg: 'bg-muted/30',
+      iconBg: 'bg-muted',
+      iconColor: 'text-muted-foreground',
+      ring: '',
+    },
+    high: {
+      border: 'border-green-500/40',
+      bg: 'bg-green-50/50 dark:bg-green-950/20',
+      iconBg: 'bg-green-500/10',
+      iconColor: 'text-green-600 dark:text-green-500',
+      ring: '',
+    },
+    low: {
+      border: 'border-red-500/40',
+      bg: 'bg-red-50/50 dark:bg-red-950/20',
+      iconBg: 'bg-red-500/10',
+      iconColor: 'text-red-600 dark:text-red-500',
+      ring: '',
+    },
+  }
+
+  const styles = variantStyles[variant]
+
   return (
-    <Card
-      className={
-        variant === 'success'
-          ? 'border-green-600/50 bg-green-50 dark:bg-green-500/5'
-          : variant === 'danger'
-          ? 'border-red-600/50 bg-red-50 dark:bg-red-500/5'
-          : ''
-      }
+    <div
+      className={cn(
+        'rounded-xl border-2 p-5 transition-all hover:shadow-md',
+        styles.border,
+        styles.bg,
+        styles.ring
+      )}
     >
-      <CardHeader className="pb-2">
-        <CardTitle className="text-xs font-medium uppercase tracking-wide flex items-center gap-1.5 opacity-80">
-          {icon}
+      <div className="flex items-start justify-between mb-4">
+        <div className={cn('p-2 rounded-lg', styles.iconBg)}>
+          <div className={styles.iconColor}>{icon}</div>
+        </div>
+      </div>
+      <div className="space-y-1">
+        <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
           {label}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold tabular-nums">
+        </p>
+        <p className="text-3xl font-bold tabular-nums">
           {value.toLocaleString('en-US', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           })}
-          <span className="text-sm opacity-60 ml-1">{unit}</span>
-        </div>
-      </CardContent>
-    </Card>
+        </p>
+        <p className="text-sm font-medium text-muted-foreground">{unit}</p>
+      </div>
+    </div>
   )
 }
 
