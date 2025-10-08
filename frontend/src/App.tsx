@@ -36,7 +36,9 @@ function App() {
           path="/"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <ErrorBoundary>
+                <Dashboard />
+              </ErrorBoundary>
             </ProtectedRoute>
           }
         />
@@ -54,7 +56,9 @@ function App() {
           path="/newsstand"
           element={
             <ProtectedRoute>
-              <Newsstand />
+              <ErrorBoundary>
+                <Newsstand />
+              </ErrorBoundary>
             </ProtectedRoute>
           }
         />
@@ -62,7 +66,9 @@ function App() {
           path="/settings"
           element={
             <ProtectedRoute>
-              <Settings />
+              <ErrorBoundary>
+                <Settings />
+              </ErrorBoundary>
             </ProtectedRoute>
           }
         />
@@ -70,7 +76,9 @@ function App() {
           path="/metrics"
           element={
             <ProtectedRoute>
-              <AllMetrics />
+              <ErrorBoundary>
+                <AllMetrics />
+              </ErrorBoundary>
             </ProtectedRoute>
           }
         />

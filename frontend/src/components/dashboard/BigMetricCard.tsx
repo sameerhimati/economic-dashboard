@@ -2,11 +2,9 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Badge } from '@/components/ui/badge'
 import { LineChart, Line, ResponsiveContainer } from 'recharts'
 import { TrendingUp, TrendingDown, Info, AlertCircle } from 'lucide-react'
 import { dailyMetricsService } from '@/services/dailyMetricsService'
-import type { DailyMetricData } from '@/types/dailyMetrics'
 import ChartModal from '@/components/charts/ChartModal'
 import { cn } from '@/lib/utils'
 
@@ -14,8 +12,17 @@ interface BigMetricCardProps {
   metricCode: string
 }
 
+interface MetricDisplayData {
+  code: string
+  display_name: string
+  unit: string
+  latest_value: number
+  change_percent: number
+  sparkline_data: Array<{ date: string; value: number }>
+}
+
 export function BigMetricCard({ metricCode }: BigMetricCardProps) {
-  const [metric, setMetric] = useState<DailyMetricData | null>(null)
+  const [metric, setMetric] = useState<MetricDisplayData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
@@ -28,15 +35,35 @@ export function BigMetricCard({ metricCode }: BigMetricCardProps) {
     setLoading(true)
     setError(null)
     try {
-      // Fetch today's metrics and find this specific metric
-      const today = new Date().toISOString().split('T')[0]
-      const response = await dailyMetricsService.getDailyMetrics(today)
-      const foundMetric = response.metrics.find((m) => m.code === metricCode)
+      // Fetch historical data to get the latest value
+      const response = await dailyMetricsService.getHistoricalMetrics(metricCode, '5y')
 
-      if (foundMetric) {
-        setMetric(foundMetric)
+      if (response.data && response.data.length > 0) {
+        // Get the latest data point
+        const latestValue = response.data[response.data.length - 1].value
+
+        // Calculate change by comparing last 2 data points
+        let changePercent = 0
+        if (response.data.length >= 2) {
+          const previousValue = response.data[response.data.length - 2].value
+          if (previousValue !== 0) {
+            changePercent = ((latestValue - previousValue) / previousValue) * 100
+          }
+        }
+
+        // Get sparkline data (last 30 data points)
+        const sparklineData = response.data.slice(-30)
+
+        setMetric({
+          code: response.code,
+          display_name: response.display_name,
+          unit: response.unit,
+          latest_value: latestValue,
+          change_percent: changePercent,
+          sparkline_data: sparklineData,
+        })
       } else {
-        setError('Metric not found')
+        setError('No data available')
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load metric')
@@ -73,9 +100,9 @@ export function BigMetricCard({ metricCode }: BigMetricCardProps) {
     )
   }
 
-  const change1d = metric.changes.vs_yesterday
-  const isPositive = change1d > 0
-  const isNeutral = Math.abs(change1d) < 0.01
+  const changePercent = metric.change_percent
+  const isPositive = changePercent > 0
+  const isNeutral = Math.abs(changePercent) < 0.01
 
   return (
     <>
@@ -119,11 +146,11 @@ export function BigMetricCard({ metricCode }: BigMetricCardProps) {
                   )}
                   <span>
                     {isPositive ? '+' : ''}
-                    {change1d.toFixed(2)}%
+                    {changePercent.toFixed(2)}%
                   </span>
                 </div>
               )}
-              <span className="text-xs text-muted-foreground font-medium">vs yesterday</span>
+              <span className="text-xs text-muted-foreground font-medium">vs previous</span>
             </div>
           </div>
 
@@ -149,20 +176,8 @@ export function BigMetricCard({ metricCode }: BigMetricCardProps) {
             )}
           </div>
 
-          {/* Alerts & Status */}
-          <div className="flex items-center justify-between gap-2 pt-1">
-            {metric.alerts && metric.alerts.length > 0 ? (
-              <Badge variant="destructive" className="text-xs font-semibold">
-                {metric.alerts.length} Alert{metric.alerts.length > 1 ? 's' : ''}
-              </Badge>
-            ) : metric.significance.is_outlier ? (
-              <Badge variant="secondary" className="text-xs font-semibold">
-                Outlier
-              </Badge>
-            ) : (
-              <div />
-            )}
-
+          {/* View Details Button */}
+          <div className="flex items-center justify-end gap-2 pt-1">
             <Button
               variant="ghost"
               size="sm"

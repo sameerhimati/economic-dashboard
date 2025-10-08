@@ -91,21 +91,23 @@ export function TodaysFocus() {
             </div>
 
             {/* Date Navigation */}
-            <div className="flex items-center justify-between gap-4 p-4 bg-accent/50 rounded-lg">
+            <div className="flex items-center justify-between gap-2 sm:gap-4 p-4 bg-accent/50 rounded-lg">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handlePreviousDay}
-                className="gap-2"
+                className="gap-1 sm:gap-2 h-9 px-3"
                 aria-label="Previous day"
               >
-                <ChevronLeft className="h-4 w-4" />
-                Previous Day
+                <ChevronLeft className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline">Previous Day</span>
+                <span className="sm:hidden">Prev</span>
               </Button>
 
-              <div className="text-center">
-                <div className="text-lg font-semibold" aria-label={`Selected date: ${format(currentDate, 'EEEE, MMMM d, yyyy')}`}>
-                  {format(currentDate, 'EEEE, MMMM d, yyyy')}
+              <div className="text-center min-w-0 flex-1">
+                <div className="text-sm sm:text-lg font-semibold truncate px-2" aria-label={`Selected date: ${format(currentDate, 'EEEE, MMMM d, yyyy')}`}>
+                  <span className="hidden sm:inline">{format(currentDate, 'EEEE, MMMM d, yyyy')}</span>
+                  <span className="sm:hidden">{format(currentDate, 'MMM d, yyyy')}</span>
                 </div>
                 {isWeekend && (
                   <div className="text-xs text-muted-foreground mt-0.5">
@@ -119,11 +121,12 @@ export function TodaysFocus() {
                 size="sm"
                 onClick={handleNextDay}
                 disabled={isFutureDate}
-                className="gap-2"
+                className="gap-1 sm:gap-2 h-9 px-3"
                 aria-label="Next day"
               >
-                Next Day
-                <ChevronRight className="h-4 w-4" />
+                <span className="hidden sm:inline">Next Day</span>
+                <span className="sm:hidden">Next</span>
+                <ChevronRight className="h-4 w-4 shrink-0" />
               </Button>
             </div>
           </div>

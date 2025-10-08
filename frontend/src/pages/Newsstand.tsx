@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Accordion,
   AccordionContent,
@@ -222,36 +223,38 @@ export function Newsstand() {
                   disabled={resetting || fetching}
                   size="default"
                   variant="outline"
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto h-10"
                 >
                   {resetting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin shrink-0" />
                   ) : (
-                    <RefreshCw className="mr-2 h-4 w-4" />
+                    <RefreshCw className="mr-2 h-4 w-4 shrink-0" />
                   )}
-                  Reset DB
+                  <span className="truncate">Reset DB</span>
                 </Button>
                 <Button
                   onClick={handleFetchNewsletters}
                   disabled={fetching || resetting}
                   size="default"
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto h-10"
                 >
                   {fetching ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin shrink-0" />
                   ) : (
-                    <Download className="mr-2 h-4 w-4" />
+                    <Download className="mr-2 h-4 w-4 shrink-0" />
                   )}
-                  Fetch Newsletters ({fetchDays} days)
+                  <span className="truncate">Fetch ({fetchDays}d)</span>
                 </Button>
                 <Button
                   onClick={() => setShowBookmarksOnly(!showBookmarksOnly)}
                   size="default"
                   variant={showBookmarksOnly ? "default" : "outline"}
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto h-10"
                 >
-                  <Bookmark className={`mr-2 h-4 w-4 ${showBookmarksOnly ? 'fill-current' : ''}`} />
-                  {showBookmarksOnly ? `Showing ${totalBookmarkedArticles} Bookmarks` : 'Show Bookmarks Only'}
+                  <Bookmark className={`mr-2 h-4 w-4 shrink-0 ${showBookmarksOnly ? 'fill-current' : ''}`} />
+                  <span className="truncate">
+                    {showBookmarksOnly ? `${totalBookmarkedArticles} Saved` : 'Bookmarks'}
+                  </span>
                 </Button>
               </div>
             </div>
@@ -289,25 +292,28 @@ export function Newsstand() {
                 </Card>
               ))}
             </div>
+          ) : displayedCategories.length === 0 && showBookmarksOnly ? (
+            /* No Bookmarks Empty State */
+            <EmptyState
+              icon={Bookmark}
+              title="No bookmarks saved"
+              description="You haven't bookmarked any articles yet. Browse the articles below and click the bookmark icon to save your favorites."
+              action={{
+                label: 'Show All Articles',
+                onClick: () => setShowBookmarksOnly(false)
+              }}
+            />
           ) : categories.length === 0 ? (
-            /* Empty State */
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-16">
-                <FolderOpen className="h-16 w-16 text-muted-foreground/50 mb-4" />
-                <h3 className="text-xl font-semibold mb-2">No articles yet</h3>
-                <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
-                  Click "Fetch Newsletters" above to load your latest real estate articles from your email
-                </p>
-                <Button onClick={handleFetchNewsletters} disabled={fetching}>
-                  {fetching ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="mr-2 h-4 w-4" />
-                  )}
-                  Fetch Newsletters
-                </Button>
-              </CardContent>
-            </Card>
+            /* No Articles Empty State */
+            <EmptyState
+              icon={FolderOpen}
+              title="No articles yet"
+              description="Click 'Fetch Newsletters' above to load your latest real estate articles from your email."
+              action={{
+                label: fetching ? 'Fetching...' : 'Fetch Newsletters',
+                onClick: handleFetchNewsletters
+              }}
+            />
           ) : (
             /* Articles by Category */
             <Accordion type="multiple" className="space-y-3 sm:space-y-4" defaultValue={displayedCategories.map(cat => cat.category)}>

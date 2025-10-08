@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   Accordion,
   AccordionContent,
@@ -21,6 +22,7 @@ import {
   Calendar,
   BarChart3,
   Sparkles,
+  ServerCrash,
 } from 'lucide-react'
 import { toast, Toaster } from 'sonner'
 import { dailyMetricsService } from '@/services/dailyMetricsService'
@@ -347,16 +349,16 @@ export function Dashboard() {
                     Explore focused daily themes and weekly trends
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-3">
-                  <Button onClick={() => navigate('/focus')} className="gap-2 h-10" size="default">
-                    View Today's Focus
-                    <ArrowRight className="h-4 w-4" />
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+                  <Button onClick={() => navigate('/focus')} className="gap-2 h-10 w-full sm:w-auto" size="default">
+                    <span className="truncate">Today's Focus</span>
+                    <ArrowRight className="h-4 w-4 shrink-0" />
                   </Button>
-                  <Button variant="outline" onClick={() => navigate('/trends')} size="default">
-                    Weekly Trends
+                  <Button variant="outline" onClick={() => navigate('/trends')} size="default" className="h-10 w-full sm:w-auto">
+                    <span className="truncate">Weekly Trends</span>
                   </Button>
-                  <Button variant="outline" onClick={() => navigate('/metrics')} size="default">
-                    Explore All Metrics
+                  <Button variant="outline" onClick={() => navigate('/metrics')} size="default" className="h-10 w-full sm:w-auto">
+                    <span className="truncate">All Metrics</span>
                   </Button>
                 </div>
               </div>
@@ -365,25 +367,15 @@ export function Dashboard() {
 
           {/* Error State */}
           {error && !loading && (
-            <Card className="border-destructive/50 bg-destructive/5">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2 text-destructive">
-                  <AlertTriangle className="h-5 w-5" />
-                  <div>
-                    <p className="font-semibold">Failed to load dashboard</p>
-                    <p className="text-sm text-muted-foreground">{error}</p>
-                  </div>
-                </div>
-                <Button
-                  onClick={fetchDailyMetrics}
-                  variant="outline"
-                  size="default"
-                  className="mt-4"
-                >
-                  Retry
-                </Button>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={ServerCrash}
+              title="Failed to load dashboard"
+              description={error || 'An unexpected error occurred while loading the dashboard data. Please try again.'}
+              action={{
+                label: 'Retry',
+                onClick: fetchDailyMetrics
+              }}
+            />
           )}
         </div>
       </PageTransition>

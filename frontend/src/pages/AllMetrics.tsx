@@ -2,11 +2,12 @@ import { useState, useEffect, useMemo } from 'react'
 import { Layout } from '@/components/layout/Layout'
 import { Card, CardContent } from '@/components/ui/card'
 import { PageTransition } from '@/components/ui/page-transition'
-import { BarChart3, Calendar, Search, Filter, TrendingUp, TrendingDown } from 'lucide-react'
+import { Calendar, Search, Filter, TrendingUp, TrendingDown, Inbox } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { EmptyState } from '@/components/ui/empty-state'
 import { MetricCard } from '@/components/dashboard/MetricCard'
 import { dailyMetricsService } from '@/services/dailyMetricsService'
 import type { DailyMetricsResponse, DailyMetricData } from '@/types/dailyMetrics'
@@ -211,18 +212,18 @@ export function AllMetrics() {
                 <Button
                   variant={sortBy === 'name' ? 'default' : 'outline'}
                   onClick={() => setSortBy('name')}
-                  className="gap-2 h-11 px-4"
+                  className="gap-1.5 h-11 px-3 sm:px-4"
                 >
-                  <Filter className="h-4 w-4" />
-                  Name
+                  <Filter className="h-4 w-4 shrink-0" />
+                  <span className="truncate">Name</span>
                 </Button>
                 <Button
                   variant={sortBy === 'change' ? 'default' : 'outline'}
                   onClick={() => setSortBy('change')}
-                  className="gap-2 h-11 px-4"
+                  className="gap-1.5 h-11 px-3 sm:px-4"
                 >
-                  <TrendingUp className="h-4 w-4" />
-                  Change
+                  <TrendingUp className="h-4 w-4 shrink-0" />
+                  <span className="truncate">Change</span>
                 </Button>
               </div>
             </div>
@@ -233,9 +234,9 @@ export function AllMetrics() {
                 variant={selectedCategory === null ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setSelectedCategory(null)}
-                className="h-9"
+                className="h-9 px-3"
               >
-                All Categories
+                <span className="truncate">All Categories</span>
               </Button>
               {Object.entries(CATEGORY_INFO).map(([category, info]) => (
                 <Button
@@ -245,10 +246,10 @@ export function AllMetrics() {
                   onClick={() =>
                     setSelectedCategory(selectedCategory === category ? null : category)
                   }
-                  className="h-9 gap-1.5"
+                  className="h-9 gap-1.5 px-3"
                 >
-                  <span>{info.icon}</span>
-                  <span>{category}</span>
+                  <span className="shrink-0">{info.icon}</span>
+                  <span className="truncate">{category}</span>
                 </Button>
               ))}
             </div>
@@ -345,24 +346,18 @@ export function AllMetrics() {
               )}
             </>
           ) : (
-            <Card className="border-2 border-dashed">
-              <CardContent className="pt-12 pb-12 text-center">
-                <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-semibold mb-2">No metrics found</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Try adjusting your search or filter criteria
-                </p>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSearchQuery('')
-                    setSelectedCategory(null)
-                  }}
-                >
-                  Clear Filters
-                </Button>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={Inbox}
+              title="No metrics found"
+              description="Try adjusting your search or filter criteria to find what you're looking for."
+              action={{
+                label: 'Clear Filters',
+                onClick: () => {
+                  setSearchQuery('')
+                  setSelectedCategory(null)
+                }
+              }}
+            />
           )}
         </div>
       </PageTransition>
