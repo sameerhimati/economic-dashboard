@@ -4,7 +4,7 @@ Daily Metrics API Routes.
 Provides intelligent daily economic briefings with context and analysis.
 """
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
@@ -69,9 +69,9 @@ async def get_daily_metrics(
     try:
         # Parse date
         if date:
-            target_date = datetime.strptime(date, "%Y-%m-%d")
+            target_date = datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
         else:
-            target_date = datetime.now()
+            target_date = datetime.now(timezone.utc)
 
         weekday = target_date.weekday()
         theme = WEEKDAY_THEMES.get(weekday, "Economic Overview")
@@ -236,7 +236,7 @@ async def get_historical_metric(
         historical_data = await _get_historical_data(db, metric_code, years=years)
 
         # Filter to requested range
-        cutoff_date = datetime.now() - timedelta(days=days)
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
         filtered_data = []
         if historical_data:
             for d in historical_data:
@@ -306,7 +306,7 @@ async def get_weekly_reflection(
     """
     try:
         # Calculate week dates
-        today = datetime.now()
+        today = datetime.now(timezone.utc)
         week_start = today - timedelta(days=7)
         week_end = today
 
@@ -502,7 +502,7 @@ async def _get_historical_data(
 ) -> List[dict]:
     """Get historical data for a metric."""
     try:
-        cutoff = datetime.now() - timedelta(days=years*365)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=years*365)
 
         stmt = select(MetricDataPoint).where(
             and_(
@@ -528,7 +528,7 @@ async def _get_sparkline_data(
 ) -> List[SparklinePoint]:
     """Get last N days of data for sparkline chart."""
     try:
-        cutoff = datetime.now() - timedelta(days=days)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
         stmt = select(MetricDataPoint).where(
             and_(
@@ -707,7 +707,7 @@ async def refresh_all_metrics(
             "updated_count": updated_count,
             "failed_count": failed_count,
             "failures": failures,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
     except Exception as e:
