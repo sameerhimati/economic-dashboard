@@ -170,12 +170,12 @@ function ChartModal({
     return Math.round(((current - low) / (high - low)) * 100)
   }
 
-  const getStatusLabel = (percentile: number): { label: string; variant: 'default' | 'secondary' | 'destructive' } => {
+  const getStatusLabel = (percentile: number): { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' } => {
     if (percentile >= 80) return { label: 'Historically High', variant: 'destructive' }
     if (percentile >= 60) return { label: 'Above Average', variant: 'secondary' }
-    if (percentile >= 40) return { label: 'Average', variant: 'default' }
+    if (percentile >= 40) return { label: 'Average', variant: 'outline' }
     if (percentile >= 20) return { label: 'Below Average', variant: 'secondary' }
-    return { label: 'Historically Low', variant: 'default' }
+    return { label: 'Historically Low', variant: 'outline' }
   }
 
   return (
@@ -185,26 +185,26 @@ function ChartModal({
           <DialogTitle className="flex items-center gap-2 text-2xl">
             <BarChart3 className="h-6 w-6 text-primary" />
             {metricName}
-            <span className="text-sm text-muted-foreground font-normal">({metricCode})</span>
+            <span className="text-sm font-normal opacity-70">({metricCode})</span>
           </DialogTitle>
         </DialogHeader>
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ModalTab)}>
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="chart" className="gap-2">
+          <TabsList className="grid w-full grid-cols-4 bg-muted">
+            <TabsTrigger value="chart" className="gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
               <BarChart3 className="h-4 w-4" />
               Chart
             </TabsTrigger>
-            <TabsTrigger value="about" className="gap-2">
+            <TabsTrigger value="about" className="gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
               <BookOpen className="h-4 w-4" />
               About
             </TabsTrigger>
-            <TabsTrigger value="interpret" className="gap-2">
+            <TabsTrigger value="interpret" className="gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
               <Lightbulb className="h-4 w-4" />
               How to Interpret
             </TabsTrigger>
-            <TabsTrigger value="history" className="gap-2">
+            <TabsTrigger value="history" className="gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
               <History className="h-4 w-4" />
               Historical Context
             </TabsTrigger>
@@ -214,11 +214,11 @@ function ChartModal({
           <TabsContent value="chart" className="space-y-4">
             {/* Time Range Tabs */}
             <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="30d">30 Days</TabsTrigger>
-                <TabsTrigger value="90d">90 Days</TabsTrigger>
-                <TabsTrigger value="1y">1 Year</TabsTrigger>
-                <TabsTrigger value="5y">5 Years</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-4 bg-muted">
+                <TabsTrigger value="30d" className="data-[state=active]:bg-background data-[state=active]:text-foreground">30 Days</TabsTrigger>
+                <TabsTrigger value="90d" className="data-[state=active]:bg-background data-[state=active]:text-foreground">90 Days</TabsTrigger>
+                <TabsTrigger value="1y" className="data-[state=active]:bg-background data-[state=active]:text-foreground">1 Year</TabsTrigger>
+                <TabsTrigger value="5y" className="data-[state=active]:bg-background data-[state=active]:text-foreground">5 Years</TabsTrigger>
               </TabsList>
             </Tabs>
 
@@ -379,26 +379,28 @@ function ChartModal({
                     <CardContent>
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Current value:</span>
+                          <span className="opacity-70">Current value:</span>
                           <span className="font-bold text-xl tabular-nums">
                             {data.statistics.current.toLocaleString('en-US', {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2,
                             })}{' '}
-                            {data.unit}
+                            <span className="text-sm opacity-60">{data.unit}</span>
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Percentile:</span>
-                          <span className="font-semibold">
-                            {getPercentile(data.statistics.current, data.statistics.high, data.statistics.low)}th
-                            <span className="text-sm text-muted-foreground ml-1">
-                              (higher than {getPercentile(data.statistics.current, data.statistics.high, data.statistics.low)}% of historical values)
+                          <span className="opacity-70">Percentile:</span>
+                          <div className="text-right">
+                            <span className="font-semibold">
+                              {getPercentile(data.statistics.current, data.statistics.high, data.statistics.low)}th
                             </span>
-                          </span>
+                            <p className="text-xs opacity-60">
+                              Higher than {getPercentile(data.statistics.current, data.statistics.high, data.statistics.low)}% of values
+                            </p>
+                          </div>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Status:</span>
+                          <span className="opacity-70">Status:</span>
                           <Badge variant={getStatusLabel(getPercentile(data.statistics.current, data.statistics.high, data.statistics.low)).variant}>
                             {getStatusLabel(getPercentile(data.statistics.current, data.statistics.high, data.statistics.low)).label}
                           </Badge>
@@ -431,27 +433,27 @@ function ChartModal({
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      <div className="border-l-4 border-red-500 pl-4">
-                        <div className="font-semibold text-red-600 mb-1">
+                      <div className="border-l-4 border-red-600 pl-4 bg-red-50 dark:bg-red-950/20 py-3 rounded-r">
+                        <div className="font-semibold text-red-700 dark:text-red-400 mb-1">
                           Low: {education.readingTheNumbers.low.range}
                         </div>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-red-900/70 dark:text-red-200/70">
                           {education.readingTheNumbers.low.meaning}
                         </p>
                       </div>
-                      <div className="border-l-4 border-yellow-500 pl-4">
-                        <div className="font-semibold text-yellow-600 mb-1">
+                      <div className="border-l-4 border-yellow-600 pl-4 bg-yellow-50 dark:bg-yellow-950/20 py-3 rounded-r">
+                        <div className="font-semibold text-yellow-700 dark:text-yellow-400 mb-1">
                           Normal: {education.readingTheNumbers.normal.range}
                         </div>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-yellow-900/70 dark:text-yellow-200/70">
                           {education.readingTheNumbers.normal.meaning}
                         </p>
                       </div>
-                      <div className="border-l-4 border-green-500 pl-4">
-                        <div className="font-semibold text-green-600 mb-1">
+                      <div className="border-l-4 border-green-600 pl-4 bg-green-50 dark:bg-green-950/20 py-3 rounded-r">
+                        <div className="font-semibold text-green-700 dark:text-green-400 mb-1">
                           High: {education.readingTheNumbers.high.range}
                         </div>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-green-900/70 dark:text-green-200/70">
                           {education.readingTheNumbers.high.meaning}
                         </p>
                       </div>
@@ -593,14 +595,14 @@ function StatCard({ icon, label, value, unit, variant = 'default' }: StatCardPro
     <Card
       className={
         variant === 'success'
-          ? 'border-green-600/50 bg-green-500/5'
+          ? 'border-green-600/50 bg-green-50 dark:bg-green-500/5'
           : variant === 'danger'
-          ? 'border-red-600/50 bg-red-500/5'
+          ? 'border-red-600/50 bg-red-50 dark:bg-red-500/5'
           : ''
       }
     >
       <CardHeader className="pb-2">
-        <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+        <CardTitle className="text-xs font-medium uppercase tracking-wide flex items-center gap-1.5 opacity-80">
           {icon}
           {label}
         </CardTitle>
@@ -611,7 +613,7 @@ function StatCard({ icon, label, value, unit, variant = 'default' }: StatCardPro
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           })}
-          <span className="text-sm text-muted-foreground ml-1">{unit}</span>
+          <span className="text-sm opacity-60 ml-1">{unit}</span>
         </div>
       </CardContent>
     </Card>

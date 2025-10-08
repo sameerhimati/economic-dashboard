@@ -5,6 +5,7 @@ import { Dashboard } from '@/pages/Dashboard'
 import { TodaysFocus } from '@/pages/TodaysFocus'
 import { Newsstand } from '@/pages/Newsstand'
 import { Settings } from '@/pages/Settings'
+import { AllMetrics } from '@/pages/AllMetrics'
 import { Login } from '@/pages/Login'
 import { Register } from '@/pages/Register'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -62,6 +63,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Settings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/metrics"
+          element={
+            <ProtectedRoute>
+              <AllMetrics />
             </ProtectedRoute>
           }
         />

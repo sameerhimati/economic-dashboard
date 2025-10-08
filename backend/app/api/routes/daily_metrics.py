@@ -45,11 +45,12 @@ logger = logging.getLogger(__name__)
 @router.get("/daily", response_model=DailyMetricsResponse)
 async def get_daily_metrics(
     date: Optional[str] = Query(None, description="Date in YYYY-MM-DD format (default: today)"),
-    current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
     Get today's intelligent economic briefing.
+
+    Public endpoint - no authentication required.
 
     Returns metrics for the day with:
     - Multi-period change analysis
@@ -200,11 +201,12 @@ async def get_daily_metrics(
 async def get_historical_metric(
     metric_code: str,
     range: str = Query("1y", description="Time range: 30d, 90d, 1y, 5y"),
-    current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
     Get historical data for a specific metric.
+
+    Public endpoint - no authentication required.
 
     Used for interactive charts in the frontend.
     """
@@ -286,11 +288,12 @@ async def get_historical_metric(
 
 @router.get("/weekly-reflection", response_model=WeeklyReflectionResponse)
 async def get_weekly_reflection(
-    current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
     Get weekly reflection summary.
+
+    Public endpoint - no authentication required.
 
     Shown on weekends with:
     - Top movers of the week
