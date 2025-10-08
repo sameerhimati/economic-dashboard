@@ -1,248 +1,380 @@
-import { useEffect, useState, useMemo, useCallback } from 'react'
-import { useData } from '@/hooks/useData'
-import { useBookmarks } from '@/hooks/useBookmarks'
-import { useSettings } from '@/hooks/useSettings'
-import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { useEffect, useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Layout } from '@/components/layout/Layout'
-import { TodayFeed } from '@/components/dashboard/TodayFeed'
-import { BreakingNews } from '@/components/dashboard/BreakingNews'
-import { WeeklySummary } from '@/components/dashboard/WeeklySummary'
+import { BigMetricCard } from '@/components/dashboard/BigMetricCard'
 import { MetricCard } from '@/components/dashboard/MetricCard'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ProgressBar } from '@/components/ui/progress-bar'
-import { OnboardingTour } from '@/components/onboarding/OnboardingTour'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 import { PageTransition } from '@/components/ui/page-transition'
-import { RefreshCw, Clock, Star } from 'lucide-react'
+import { ProgressBar } from '@/components/ui/progress-bar'
+import {
+  TrendingUp,
+  TrendingDown,
+  AlertTriangle,
+  ArrowRight,
+  Calendar,
+  Zap,
+} from 'lucide-react'
 import { toast, Toaster } from 'sonner'
-import type { EconomicIndicator } from '@/types'
+import { dailyMetricsService } from '@/services/dailyMetricsService'
+import type { DailyMetricsResponse, DailyMetricData } from '@/types/dailyMetrics'
+import {
+  BIG_FIVE_METRICS,
+  WEEKDAY_THEMES,
+  getMetricsForWeekday,
+  CATEGORY_INFO,
+} from '@/data/weekdayThemes'
 
 export function Dashboard() {
-  const {
-    todayFeed,
-    metrics,
-    breakingNews,
-    weeklySummary,
-    isLoading,
-    error,
-    fetchAll,
-  } = useData()
+  const navigate = useNavigate()
+  const [metrics, setMetrics] = useState<DailyMetricsResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const { bookmarkedIds } = useBookmarks()
-  const {
-    showTodayFeed,
-    showFavorites,
-    showMetrics,
-    showBreakingNews,
-    showWeeklySummary,
-    refreshInterval,
-  } = useSettings()
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
+  useEffect(() => {
+    fetchDailyMetrics()
+  }, [])
 
-  // Combine all metrics from all sources (for Favorites)
-  const allMetrics = useMemo(() => {
-    const combined: EconomicIndicator[] = []
-    const seenIds = new Set<string>()
-
-    // Add from Today Feed
-    if (todayFeed?.indicators) {
-      todayFeed.indicators.forEach(metric => {
-        const id = metric?.id || metric?.name || ''
-        if (id && !seenIds.has(id)) {
-          combined.push(metric)
-          seenIds.add(id)
-        }
+  const fetchDailyMetrics = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const today = new Date().toISOString().split('T')[0]
+      const response = await dailyMetricsService.getDailyMetrics(today)
+      setMetrics(response)
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to load dashboard data'
+      setError(errorMessage)
+      toast.error('Failed to load data', {
+        description: errorMessage,
       })
+    } finally {
+      setLoading(false)
     }
+  }
 
-    // Add from Additional Metrics (only if not already added)
-    if (metrics?.metrics) {
-      metrics.metrics.forEach(metric => {
-        const id = metric?.id || metric?.name || ''
-        if (id && !seenIds.has(id)) {
-          combined.push(metric)
-          seenIds.add(id)
-        }
-      })
-    }
+  // Group metrics by category
+  const metricsByCategory = useMemo(() => {
+    if (!metrics) return {}
 
-    return combined
-  }, [todayFeed, metrics])
+    const grouped: Record<string, DailyMetricData[]> = {}
 
-  // Filter bookmarked metrics (unique)
-  const bookmarkedMetrics = useMemo(() => {
-    const uniqueBookmarked: EconomicIndicator[] = []
-    const seenIds = new Set<string>()
+    Object.entries(WEEKDAY_THEMES).forEach(([weekday, theme]) => {
+      const weekdayNum = Number(weekday)
+      if (weekdayNum >= 5) return // Skip weekend themes
 
-    allMetrics.forEach((metric) => {
-      const metricId = metric?.id || metric?.name || ''
-      if (metricId && bookmarkedIds.has(metricId) && !seenIds.has(metricId)) {
-        uniqueBookmarked.push(metric)
-        seenIds.add(metricId)
+      const metricCodes = getMetricsForWeekday(weekdayNum)
+      const categoryMetrics = metrics.metrics.filter((m) =>
+        metricCodes.includes(m.code)
+      )
+
+      if (categoryMetrics.length > 0) {
+        grouped[theme] = categoryMetrics
       }
     })
 
-    return uniqueBookmarked
-  }, [allMetrics, bookmarkedIds])
+    return grouped
+  }, [metrics])
 
-  // Filter non-bookmarked metrics for Additional Metrics section
-  const nonBookmarkedMetrics = useMemo(() => {
-    if (!metrics?.metrics) return []
-    return metrics.metrics.filter((metric) => {
-      const metricId = metric?.id || metric?.name || ''
-      return !bookmarkedIds.has(metricId)
+  // Get today's highlights
+  const todaysHighlights = useMemo(() => {
+    if (!metrics) return []
+
+    const highlights: string[] = []
+
+    // Add high-change metrics
+    const topMovers = [...metrics.metrics]
+      .sort((a, b) => Math.abs(b.changes.vs_yesterday) - Math.abs(a.changes.vs_yesterday))
+      .slice(0, 3)
+
+    topMovers.forEach((metric) => {
+      const change = metric.changes.vs_yesterday
+      if (Math.abs(change) > 1) {
+        const direction = change > 0 ? 'up' : 'down'
+        highlights.push(
+          `${metric.display_name} ${direction} ${Math.abs(change).toFixed(1)}% - ${metric.context}`
+        )
+      }
     })
-  }, [metrics, bookmarkedIds])
 
-  useEffect(() => {
-    fetchAll()
-    setLastRefresh(new Date())
-  }, [])
-
-  // Auto-refresh based on settings
-  useEffect(() => {
-    if (refreshInterval === 0) return // Manual refresh only
-
-    const intervalMs = refreshInterval * 60 * 1000
-    const intervalId = setInterval(() => {
-      fetchAll()
-      setLastRefresh(new Date())
-      toast.success('Dashboard refreshed', {
-        description: 'All data has been updated',
-        duration: 2000,
-      })
-    }, intervalMs)
-
-    return () => clearInterval(intervalId)
-  }, [fetchAll, refreshInterval])
-
-  const handleRefresh = useCallback(() => {
-    fetchAll()
-    setLastRefresh(new Date())
-    toast.success('Refreshing dashboard...', {
-      description: 'Fetching latest data',
-      duration: 2000,
+    // Add alerts
+    metrics.metrics.forEach((metric) => {
+      if (metric.alerts && metric.alerts.length > 0) {
+        highlights.push(...metric.alerts.map((alert) => `${metric.display_name}: ${alert}`))
+      }
     })
-  }, [fetchAll])
 
-  // Keyboard shortcuts
-  useKeyboardShortcuts({
-    onRefresh: handleRefresh,
-  })
+    return highlights.slice(0, 5)
+  }, [metrics])
 
   return (
     <Layout>
-      <ProgressBar isLoading={isLoading} />
+      <ProgressBar isLoading={loading} />
       <Toaster position="top-right" richColors />
-      <OnboardingTour />
 
       <PageTransition>
-        <div className="space-y-8 sm:space-y-12">
+        <div className="space-y-8">
+          {/* Hero Section - Economic Pulse */}
           <div className="space-y-4">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">Economic Dashboard</h1>
-                <p className="text-sm sm:text-base text-muted-foreground mt-1">
-                  <span>Your comprehensive view of economic indicators and market insights</span>
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                  Economic Command Center
+                </h1>
+                <p className="text-base sm:text-lg text-muted-foreground mt-2">
+                  Real-time insights into the U.S. economy
                 </p>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-              <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5" />
-                <span>Last refresh: {lastRefresh.toLocaleTimeString()}</span>
+
+            {/* Economic Pulse Cards */}
+            {loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Skeleton className="h-24" />
+                <Skeleton className="h-24" />
+                <Skeleton className="h-24" />
               </div>
-              <Button
-                onClick={handleRefresh}
-                disabled={isLoading}
-                variant="outline"
-                size="sm"
-                className="gap-2 w-full sm:w-auto"
-                title="Refresh (Press R)"
-              >
-                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-            </div>
+            ) : metrics ? (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-1">Markets</p>
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="h-5 w-5 text-green-600" />
+                          <span className="text-2xl font-bold text-green-600">
+                            {metrics.metrics_up}
+                          </span>
+                          <span className="text-sm text-muted-foreground">up</span>
+                        </div>
+                      </div>
+                      <Zap className="h-8 w-8 text-green-600/50" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-1">Markets</p>
+                        <div className="flex items-center gap-2">
+                          <TrendingDown className="h-5 w-5 text-red-600" />
+                          <span className="text-2xl font-bold text-red-600">
+                            {metrics.metrics_down}
+                          </span>
+                          <span className="text-sm text-muted-foreground">down</span>
+                        </div>
+                      </div>
+                      <TrendingDown className="h-8 w-8 text-red-600/50" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-1">Alerts</p>
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5 text-orange-600" />
+                          <span className="text-2xl font-bold text-orange-600">
+                            {metrics.alerts_count}
+                          </span>
+                          <span className="text-sm text-muted-foreground">active</span>
+                        </div>
+                      </div>
+                      <AlertTriangle className="h-8 w-8 text-orange-600/50" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : null}
           </div>
 
-          {showTodayFeed && (
-            <div id="today-feed">
-              <TodayFeed
-                data={todayFeed}
-                isLoading={isLoading}
-                error={error}
-                onRefresh={handleRefresh}
-              />
-            </div>
-          )}
-
-          {showFavorites && bookmarkedMetrics.length > 0 && (
-            <div id="favorites" className="animate-fade-in border-t pt-8 sm:pt-12">
-              <div className="flex items-center gap-2 sm:gap-3 mb-4">
-                <Star className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-500 fill-yellow-500 shrink-0" />
-                <div className="min-w-0">
-                  <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Favorites</h2>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    Your bookmarked metrics for quick access
-                  </p>
-                </div>
+          {/* The Big 5 - Core Economic Indicators */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                  The Big 5
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Core economic indicators - the pulse of the economy
+                </p>
               </div>
-              <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                {bookmarkedMetrics.map((metric, index) => (
-                  <div
-                    key={metric?.id || metric?.name || `favorite-${index}`}
-                    className="animate-slide-up"
-                    style={{ animationDelay: `${index * 30}ms` }}
-                  >
-                    <MetricCard metric={metric} />
-                  </div>
+              <Badge variant="secondary" className="gap-1">
+                <Calendar className="h-3 w-3" />
+                Live
+              </Badge>
+            </div>
+
+            {loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-48" />
                 ))}
               </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                {BIG_FIVE_METRICS.map((code) => (
+                  <BigMetricCard key={code} metricCode={code} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Today's Highlights */}
+          {!loading && todaysHighlights.length > 0 && (
+            <Card className="border-primary/20 bg-primary/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-primary" />
+                  Today's Highlights
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2">
+                  {todaysHighlights.map((highlight, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-sm">
+                      <span className="text-primary mt-0.5">•</span>
+                      <span>{highlight}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Category Sections - Collapsible */}
+          {!loading && Object.keys(metricsByCategory).length > 0 && (
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                  All Indicators by Category
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Explore the full economic picture
+                </p>
+              </div>
+
+              <Accordion type="multiple" className="space-y-4">
+                {Object.entries(metricsByCategory).map(([category, categoryMetrics]) => {
+                  const info = CATEGORY_INFO[category as keyof typeof CATEGORY_INFO]
+                  return (
+                    <AccordionItem
+                      key={category}
+                      value={category}
+                      className="border rounded-lg px-4 bg-card"
+                    >
+                      <AccordionTrigger className="hover:no-underline py-4">
+                        <div className="flex items-center gap-3 text-left">
+                          {info && (
+                            <span className="text-2xl shrink-0">{info.icon}</span>
+                          )}
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-lg font-semibold">{category}</h3>
+                              <Badge variant="outline">
+                                {categoryMetrics.length} metric{categoryMetrics.length > 1 ? 's' : ''}
+                              </Badge>
+                            </div>
+                            {info && (
+                              <p className="text-sm text-muted-foreground mt-0.5">
+                                {info.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4">
+                        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 pt-4">
+                          {categoryMetrics.map((metric, index) => (
+                            <div
+                              key={metric.code}
+                              className="animate-slide-up"
+                              style={{ animationDelay: `${index * 30}ms` }}
+                            >
+                              <MetricCard
+                                metric={{
+                                  id: metric.code,
+                                  name: metric.display_name,
+                                  value: metric.latest_value,
+                                  change: metric.changes.vs_yesterday,
+                                  sparkline: metric.sparkline_data.map((d) => d.value),
+                                  description: metric.description,
+                                  unit: metric.unit,
+                                }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  )
+                })}
+              </Accordion>
             </div>
           )}
 
-          {showMetrics && (
-            <div id="metrics">
-              {isLoading && !metrics ? (
-                <div className="space-y-4">
-                  <Skeleton className="h-8 w-48" />
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {Array.from({ length: 6 }).map((_, i) => (
-                      <Skeleton key={i} className="h-48" />
-                    ))}
-                  </div>
+          {/* Quick Actions */}
+          <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+            <CardContent className="pt-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold mb-1">
+                    Want a deeper dive?
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Explore focused daily themes and weekly trends
+                  </p>
                 </div>
-              ) : nonBookmarkedMetrics.length > 0 ? (
-                <div className="space-y-4 animate-fade-in border-t pt-8 sm:pt-12">
+                <div className="flex flex-wrap gap-3">
+                  <Button onClick={() => navigate('/focus')} className="gap-2">
+                    View Today's Focus
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" onClick={() => navigate('/trends')}>
+                    Weekly Trends
+                  </Button>
+                  <Button variant="outline" onClick={() => navigate('/metrics')}>
+                    Explore All Metrics
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Error State */}
+          {error && !loading && (
+            <Card className="border-destructive/50 bg-destructive/5">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 text-destructive">
+                  <AlertTriangle className="h-5 w-5" />
                   <div>
-                    <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Additional Metrics</h2>
-                    <p className="text-xs sm:text-sm text-muted-foreground">
-                      Extended economic indicators and data points
-                    </p>
-                  </div>
-                  <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                    {nonBookmarkedMetrics.map((metric, index) => (
-                      <div
-                        key={metric?.id || `metric-${index}`}
-                        className="animate-slide-up"
-                        style={{ animationDelay: `${index * 30}ms` }}
-                      >
-                        <MetricCard metric={metric} />
-                      </div>
-                    ))}
+                    <p className="font-semibold">Failed to load dashboard</p>
+                    <p className="text-sm text-muted-foreground">{error}</p>
                   </div>
                 </div>
-              ) : null}
-            </div>
-          )}
-
-          {showBreakingNews && (
-            <BreakingNews data={breakingNews} isLoading={isLoading} />
-          )}
-
-          {showWeeklySummary && (
-            <WeeklySummary data={weeklySummary} isLoading={isLoading} />
+                <Button
+                  onClick={fetchDailyMetrics}
+                  variant="outline"
+                  className="mt-4"
+                >
+                  Retry
+                </Button>
+              </CardContent>
+            </Card>
           )}
         </div>
       </PageTransition>

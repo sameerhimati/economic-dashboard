@@ -34,6 +34,8 @@ export interface EconomicIndicator {
   source?: string
   description?: string
   historicalData?: HistoricalDataPoint[]
+  sparkline?: number[]
+  unit?: string
 }
 
 export interface HistoricalDataPoint {

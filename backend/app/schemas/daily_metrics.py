@@ -59,12 +59,21 @@ class HistoricalDataPoint(BaseModel):
     value: float
 
 
+class MetricStatistics(BaseModel):
+    """Statistical summary of historical data."""
+    current: float = Field(description="Most recent value")
+    average: float = Field(description="Average over the period")
+    high: float = Field(description="Highest value in the period")
+    low: float = Field(description="Lowest value in the period")
+
+
 class HistoricalMetricResponse(BaseModel):
     """Response for GET /api/daily-metrics/historical/{code}"""
-    metric_code: str
+    code: str = Field(description="Metric code (e.g., FEDFUNDS)")
     display_name: str
     unit: str
     data: List[HistoricalDataPoint]
+    statistics: MetricStatistics = Field(description="Statistical summary")
     count: int
 
 

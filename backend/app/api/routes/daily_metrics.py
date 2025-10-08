@@ -30,6 +30,7 @@ from app.schemas.daily_metrics import (
     SparklinePoint,
     HistoricalMetricResponse,
     HistoricalDataPoint,
+    MetricStatistics,
     WeeklyReflectionResponse,
     TopMover,
     ThresholdCrossing,
@@ -208,9 +209,12 @@ async def get_historical_metric(
     Used for interactive charts in the frontend.
     """
     try:
+        logger.info(f"Fetching historical data for metric: {metric_code}, range: {range}")
+
         # Validate metric code
         metric_config = get_metric_config(metric_code)
         if not metric_config:
+            logger.error(f"Metric not found: {metric_code}")
             raise HTTPException(status_code=404, detail=f"Metric {metric_code} not found")
 
         # Parse range
@@ -240,11 +244,36 @@ async def get_historical_metric(
             if d["date"] >= cutoff_date
         ]
 
+        # Calculate statistics
+        if filtered_data:
+            values = [d.value for d in filtered_data]
+            statistics = MetricStatistics(
+                current=values[-1],
+                average=sum(values) / len(values),
+                high=max(values),
+                low=min(values)
+            )
+            logger.info(
+                f"Successfully fetched {len(filtered_data)} data points for {metric_code}. "
+                f"Stats: current={statistics.current:.2f}, avg={statistics.average:.2f}, "
+                f"high={statistics.high:.2f}, low={statistics.low:.2f}"
+            )
+        else:
+            # Handle empty data gracefully
+            logger.warning(f"No data found for {metric_code} in range {range}")
+            statistics = MetricStatistics(
+                current=0.0,
+                average=0.0,
+                high=0.0,
+                low=0.0
+            )
+
         return HistoricalMetricResponse(
-            metric_code=metric_code,
+            code=metric_code,
             display_name=metric_config.get("display_name", metric_code),
             unit=metric_config.get("unit", ""),
             data=filtered_data,
+            statistics=statistics,
             count=len(filtered_data)
         )
 
