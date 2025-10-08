@@ -237,14 +237,18 @@ async def get_historical_metric(
 
         # Filter to requested range
         cutoff_date = datetime.now() - timedelta(days=days)
-        filtered_data = [
-            HistoricalDataPoint(
-                date=d["date"].isoformat(),
-                value=d["value"]
-            )
-            for d in historical_data
-            if d["date"] >= cutoff_date
-        ]
+        filtered_data = []
+        if historical_data:
+            for d in historical_data:
+                try:
+                    if d["date"] >= cutoff_date:
+                        filtered_data.append(HistoricalDataPoint(
+                            date=d["date"].isoformat(),
+                            value=float(d["value"])
+                        ))
+                except (KeyError, TypeError, ValueError) as e:
+                    logger.warning(f"Skipping invalid data point for {metric_code}: {e}")
+                    continue
 
         # Calculate statistics
         if filtered_data:
