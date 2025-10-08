@@ -14,19 +14,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Railway CLI
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
         run: |
-          curl -fsSL https://railway.app/install.sh | sh
-          echo "$HOME/.railway/bin" >> $GITHUB_PATH
+          cd backend
+          pip install -r requirements.txt
 
       - name: Wait for Railway deployment
         run: |
           echo "Waiting 60 seconds for Railway to deploy the latest changes..."
           sleep 60
 
-      - name: Run backfill on Railway
+      - name: Run backfill script
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: |
           cd backend
-          railway run --service economic-dashboard python scripts/backfill_metrics.py --years 2 --batch-size 100
+          python scripts/backfill_metrics.py --years 2 --batch-size 100
