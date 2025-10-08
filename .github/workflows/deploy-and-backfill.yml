@@ -32,6 +32,8 @@ jobs:
       - name: Run backfill script
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: |
           cd backend
