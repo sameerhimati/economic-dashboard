@@ -139,6 +139,60 @@ See `.env.example` for all available configuration options. Key variables:
 - `GET /data/series/{series_id}/history` - Get stored historical data
 - `DELETE /data/cache/{series_id}` - Invalidate cache (authenticated)
 
+## Database Access
+
+### Production Database (Railway)
+
+Access the production PostgreSQL database via Railway's public TCP proxy:
+
+```bash
+# Connection details
+Host: switchback.proxy.rlwy.net
+Port: 23551
+Database: railway
+User: postgres
+Password: [See Railway dashboard or .env]
+
+# Connect via psql
+PGPASSWORD="your-password" psql -h switchback.proxy.rlwy.net -p 23551 -U postgres -d railway
+
+# Quick queries
+# Count total metric data points
+PGPASSWORD="..." psql -h switchback.proxy.rlwy.net -p 23551 -U postgres -d railway \
+  -c "SELECT COUNT(*) FROM metric_data_points;"
+
+# View all metrics with data
+PGPASSWORD="..." psql -h switchback.proxy.rlwy.net -p 23551 -U postgres -d railway \
+  -c "SELECT metric_code, COUNT(*) as count FROM metric_data_points GROUP BY metric_code ORDER BY metric_code;"
+
+# Check user accounts
+PGPASSWORD="..." psql -h switchback.proxy.rlwy.net -p 23551 -U postgres -d railway \
+  -c "SELECT id, email, is_superuser FROM users;"
+```
+
+### Data Backfill
+
+The `scripts/backfill_metrics.py` script populates historical data for all configured metrics:
+
+```bash
+# Activate virtual environment
+source .venv/bin/activate
+
+# For local development (uses DATABASE_URL from .env)
+python scripts/backfill_metrics.py --years 5 --batch-size 100
+
+# For production (via Railway public proxy)
+export DATABASE_URL='postgresql+asyncpg://postgres:PASSWORD@switchback.proxy.rlwy.net:23551/railway'
+python scripts/backfill_metrics.py --years 5 --batch-size 100
+
+# Options:
+# --years: Number of years of historical data (default: 5, max: 10)
+# --batch-size: Records per database batch (default: 50, range: 10-500)
+# --metrics: Specific metrics to backfill (comma-separated, or empty for all)
+```
+
+**Note**: Backfill script is rate-limited to respect FRED API limits (120 requests/minute). For 39 metrics × 5 years, expect ~30 minutes runtime.
+
 ## Database Migrations
 
 ### Create a new migration:
