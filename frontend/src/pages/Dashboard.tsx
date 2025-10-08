@@ -16,12 +16,11 @@ import {
 import { PageTransition } from '@/components/ui/page-transition'
 import { ProgressBar } from '@/components/ui/progress-bar'
 import {
-  TrendingUp,
-  TrendingDown,
   AlertTriangle,
   ArrowRight,
   Calendar,
-  Zap,
+  BarChart3,
+  Sparkles,
 } from 'lucide-react'
 import { toast, Toaster } from 'sonner'
 import { dailyMetricsService } from '@/services/dailyMetricsService'
@@ -136,65 +135,74 @@ export function Dashboard() {
               </div>
             </div>
 
-            {/* Economic Pulse Cards */}
+            {/* Dashboard Summary Cards */}
             {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Skeleton className="h-24" />
-                <Skeleton className="h-24" />
-                <Skeleton className="h-24" />
+                <Skeleton className="h-28" />
+                <Skeleton className="h-28" />
+                <Skeleton className="h-28" />
               </div>
             ) : metrics ? (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
+                <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 hover:border-primary/30 transition-colors">
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">Markets</p>
-                        <div className="flex items-center gap-2">
-                          <TrendingUp className="h-5 w-5 text-green-600" />
-                          <span className="text-2xl font-bold text-green-600">
-                            {metrics.metrics_up}
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-muted-foreground">Total Metrics</p>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-3xl font-bold tracking-tight">
+                            {metrics.metrics.length}
                           </span>
-                          <span className="text-sm text-muted-foreground">up</span>
+                          <span className="text-sm text-muted-foreground">tracked</span>
                         </div>
+                        <p className="text-xs text-muted-foreground">
+                          Across {Object.keys(CATEGORY_INFO).length} categories
+                        </p>
                       </div>
-                      <Zap className="h-8 w-8 text-green-600/50" />
+                      <BarChart3 className="h-10 w-10 text-primary/50" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20">
+                <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20 hover:border-blue-500/30 transition-colors">
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">Markets</p>
-                        <div className="flex items-center gap-2">
-                          <TrendingDown className="h-5 w-5 text-red-600" />
-                          <span className="text-2xl font-bold text-red-600">
-                            {metrics.metrics_down}
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-muted-foreground">Data Date</p>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-xl font-bold tracking-tight">
+                            {new Date(metrics.date).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
                           </span>
-                          <span className="text-sm text-muted-foreground">down</span>
                         </div>
+                        <p className="text-xs text-muted-foreground">
+                          {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][metrics.weekday]}
+                        </p>
                       </div>
-                      <TrendingDown className="h-8 w-8 text-red-600/50" />
+                      <Calendar className="h-10 w-10 text-blue-500/50" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
+                <Card className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20 hover:border-amber-500/30 transition-colors">
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">Alerts</p>
-                        <div className="flex items-center gap-2">
-                          <AlertTriangle className="h-5 w-5 text-orange-600" />
-                          <span className="text-2xl font-bold text-orange-600">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-muted-foreground">Active Alerts</p>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-3xl font-bold tracking-tight text-amber-600 dark:text-amber-500">
                             {metrics.alerts_count}
                           </span>
-                          <span className="text-sm text-muted-foreground">active</span>
+                          <span className="text-sm text-muted-foreground">signals</span>
                         </div>
+                        <p className="text-xs text-muted-foreground">
+                          Monitoring {metrics.metrics_up + metrics.metrics_down} changes
+                        </p>
                       </div>
-                      <AlertTriangle className="h-8 w-8 text-orange-600/50" />
+                      <AlertTriangle className="h-10 w-10 text-amber-500/50" />
                     </div>
                   </CardContent>
                 </Card>
@@ -239,7 +247,7 @@ export function Dashboard() {
             <Card className="border-primary/20 bg-primary/5">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-primary" />
+                  <Sparkles className="h-5 w-5 text-primary" />
                   Today's Highlights
                 </CardTitle>
               </CardHeader>
@@ -340,14 +348,14 @@ export function Dashboard() {
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-3">
-                  <Button onClick={() => navigate('/focus')} className="gap-2">
+                  <Button onClick={() => navigate('/focus')} className="gap-2 h-10" size="default">
                     View Today's Focus
                     <ArrowRight className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" onClick={() => navigate('/trends')}>
+                  <Button variant="outline" onClick={() => navigate('/trends')} size="default">
                     Weekly Trends
                   </Button>
-                  <Button variant="outline" onClick={() => navigate('/metrics')}>
+                  <Button variant="outline" onClick={() => navigate('/metrics')} size="default">
                     Explore All Metrics
                   </Button>
                 </div>
@@ -369,6 +377,7 @@ export function Dashboard() {
                 <Button
                   onClick={fetchDailyMetrics}
                   variant="outline"
+                  size="default"
                   className="mt-4"
                 >
                   Retry

@@ -57,7 +57,7 @@ function ChartModal({
   metricCode,
   metricName,
 }: ChartModalProps) {
-  const [timeRange, setTimeRange] = useState<TimeRange>('90d')
+  const [timeRange, setTimeRange] = useState<TimeRange>('1y')
   const [activeTab, setActiveTab] = useState<ModalTab>('chart')
   const [data, setData] = useState<HistoricalMetricsResponse | null>(null)
   const [loading, setLoading] = useState(false)
@@ -211,8 +211,8 @@ function ChartModal({
                 </DialogTitle>
                 <Button
                   variant="outline"
-                  size="sm"
-                  className="gap-2 text-xs font-medium hover:bg-primary/5 hover:text-primary hover:border-primary/30 transition-all"
+                  size="default"
+                  className="gap-2 text-sm font-medium hover:bg-primary/5 hover:text-primary hover:border-primary/30 transition-all h-9 px-4"
                   asChild
                 >
                   <a
@@ -220,12 +220,12 @@ function ChartModal({
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <ExternalLink className="h-3.5 w-3.5" />
+                    <ExternalLink className="h-4 w-4" />
                     View on FRED
                   </a>
                 </Button>
               </div>
-              <DialogDescription className="text-base text-muted-foreground">
+              <DialogDescription className="text-base text-muted-foreground leading-relaxed max-w-4xl">
                 {education?.whatIsIt || 'View historical trends and detailed analysis'}
               </DialogDescription>
               <div className="flex items-center gap-2 flex-wrap">
@@ -519,7 +519,8 @@ function ChartModal({
                     </div>
                     <Button
                       variant="default"
-                      className="gap-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+                      size="default"
+                      className="gap-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 h-10 px-6 text-sm font-medium"
                       asChild
                     >
                       <a
