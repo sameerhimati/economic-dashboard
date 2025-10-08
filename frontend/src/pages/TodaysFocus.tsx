@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
 import { Layout } from '@/components/layout/Layout'
 import { PageTransition } from '@/components/ui/page-transition'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MetricCard } from '@/components/daily/MetricCard'
 import { WeeklyReflection } from '@/components/daily/WeeklyReflection'
-import { ChartModal } from '@/components/charts/ChartModal'
 import { dailyMetricsService } from '@/services/dailyMetricsService'
 import type { DailyMetricsResponse, DailyMetricData } from '@/types/dailyMetrics'
 import {
@@ -17,8 +16,10 @@ import {
   TrendingDown,
   AlertCircle,
 } from 'lucide-react'
-import { format, addDays, subDays, isAfter, isSaturday, isSunday } from 'date-fns'
+import { format, addDays, subDays, isAfter } from 'date-fns'
 import { toast } from 'sonner'
+
+const ChartModal = lazy(() => import('@/components/charts/ChartModal'))
 
 export function TodaysFocus() {
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -27,7 +28,11 @@ export function TodaysFocus() {
   const [selectedMetric, setSelectedMetric] = useState<DailyMetricData | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
 
-  const isWeekend = isSaturday(currentDate) || isSunday(currentDate)
+  const isWeekend = useMemo(() => {
+    const weekday = currentDate.getDay()
+    return weekday === 0 || weekday === 6
+  }, [currentDate])
+
   const isFutureDate = isAfter(currentDate, new Date())
 
   useEffect(() => {
@@ -92,13 +97,14 @@ export function TodaysFocus() {
                 size="sm"
                 onClick={handlePreviousDay}
                 className="gap-2"
+                aria-label="Previous day"
               >
                 <ChevronLeft className="h-4 w-4" />
                 Previous Day
               </Button>
 
               <div className="text-center">
-                <div className="text-lg font-semibold">
+                <div className="text-lg font-semibold" aria-label={`Selected date: ${format(currentDate, 'EEEE, MMMM d, yyyy')}`}>
                   {format(currentDate, 'EEEE, MMMM d, yyyy')}
                 </div>
                 {isWeekend && (
@@ -114,6 +120,7 @@ export function TodaysFocus() {
                 onClick={handleNextDay}
                 disabled={isFutureDate}
                 className="gap-2"
+                aria-label="Next day"
               >
                 Next Day
                 <ChevronRight className="h-4 w-4" />
@@ -171,16 +178,27 @@ export function TodaysFocus() {
                 </CardContent>
               </Card>
 
-              {/* Metrics Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {data.metrics.map((metric) => (
-                  <MetricCard
-                    key={metric.code}
-                    metric={metric}
-                    onClick={handleMetricClick}
-                  />
-                ))}
-              </div>
+              {/* Empty State for No Metrics */}
+              {data.metrics.length === 0 ? (
+                <Card>
+                  <CardContent className="pt-6 text-center py-12">
+                    <p className="text-muted-foreground">
+                      No metrics available for this date.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                /* Metrics Grid */
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {data.metrics.map((metric) => (
+                    <MetricCard
+                      key={metric.code}
+                      metric={metric}
+                      onClick={handleMetricClick}
+                    />
+                  ))}
+                </div>
+              )}
             </>
           ) : (
             <Card>
@@ -194,12 +212,18 @@ export function TodaysFocus() {
 
       {/* Chart Modal */}
       {selectedMetric && (
-        <ChartModal
-          open={modalOpen}
-          onOpenChange={setModalOpen}
-          metricCode={selectedMetric.code}
-          metricName={selectedMetric.display_name}
-        />
+        <Suspense fallback={
+          <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center">
+            <div className="text-muted-foreground">Loading chart...</div>
+          </div>
+        }>
+          <ChartModal
+            open={modalOpen}
+            onOpenChange={setModalOpen}
+            metricCode={selectedMetric.code}
+            metricName={selectedMetric.display_name}
+          />
+        </Suspense>
       )}
     </Layout>
   )

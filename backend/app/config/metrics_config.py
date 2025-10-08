@@ -429,3 +429,16 @@ def get_metric_config(code: str) -> Dict:
         Metric configuration dict
     """
     return METRICS_CONFIG.get(code, {})
+
+
+def get_all_metric_configs() -> List[Dict]:
+    """
+    Get all metric configurations as a list.
+
+    Returns:
+        List of all metric configurations with code included
+    """
+    return [
+        {**config, "code": code}
+        for code, config in METRICS_CONFIG.items()
+    ]

@@ -7,6 +7,7 @@ import { Newsstand } from '@/pages/Newsstand'
 import { Settings } from '@/pages/Settings'
 import { Login } from '@/pages/Login'
 import { Register } from '@/pages/Register'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Toaster } from 'sonner'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -42,7 +43,9 @@ function App() {
           path="/focus"
           element={
             <ProtectedRoute>
-              <TodaysFocus />
+              <ErrorBoundary>
+                <TodaysFocus />
+              </ErrorBoundary>
             </ProtectedRoute>
           }
         />

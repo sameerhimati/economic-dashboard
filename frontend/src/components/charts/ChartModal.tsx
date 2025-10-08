@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -32,7 +32,7 @@ interface ChartModalProps {
 
 type TimeRange = '30d' | '90d' | '1y' | '5y'
 
-export function ChartModal({
+function ChartModal({
   open,
   onOpenChange,
   metricCode,
@@ -41,12 +41,63 @@ export function ChartModal({
   const [timeRange, setTimeRange] = useState<TimeRange>('90d')
   const [data, setData] = useState<HistoricalMetricsResponse | null>(null)
   const [loading, setLoading] = useState(false)
+  const modalRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (open && metricCode) {
       fetchData()
     }
   }, [open, metricCode, timeRange])
+
+  // Handle Escape key to close modal
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onOpenChange(false)
+      }
+    }
+
+    if (open) {
+      window.addEventListener('keydown', handleEscape)
+    }
+
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [open, onOpenChange])
+
+  // Focus trap implementation
+  useEffect(() => {
+    if (!open) return
+
+    const modal = modalRef.current
+    if (!modal) return
+
+    const focusableElements = modal.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    )
+    const firstElement = focusableElements[0] as HTMLElement
+    const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement
+
+    const handleTab = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return
+
+      if (e.shiftKey) {
+        if (document.activeElement === firstElement) {
+          e.preventDefault()
+          lastElement?.focus()
+        }
+      } else {
+        if (document.activeElement === lastElement) {
+          e.preventDefault()
+          firstElement?.focus()
+        }
+      }
+    }
+
+    modal.addEventListener('keydown', handleTab as EventListener)
+    firstElement?.focus()
+
+    return () => modal.removeEventListener('keydown', handleTab as EventListener)
+  }, [open, loading])
 
   const fetchData = async () => {
     setLoading(true)
@@ -88,7 +139,7 @@ export function ChartModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
+      <DialogContent ref={modalRef} className="max-w-7xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-2xl">
             <BarChart3 className="h-6 w-6 text-primary" />
@@ -253,3 +304,5 @@ function StatCard({ icon, label, value, unit, variant = 'default' }: StatCardPro
     </Card>
   )
 }
+
+export default ChartModal

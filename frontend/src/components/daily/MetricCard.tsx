@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { SparkLine } from '@/components/charts/SparkLine'
@@ -10,7 +11,7 @@ interface MetricCardProps {
   onClick: (metric: DailyMetricData) => void
 }
 
-export function MetricCard({ metric, onClick }: MetricCardProps) {
+export const MetricCard = memo(function MetricCard({ metric, onClick }: MetricCardProps) {
   const hasAlerts = metric.alerts && metric.alerts.length > 0
 
   return (
@@ -19,9 +20,19 @@ export function MetricCard({ metric, onClick }: MetricCardProps) {
         'group relative overflow-hidden transition-all duration-200',
         'hover:shadow-lg hover:border-primary/50 cursor-pointer',
         'active:scale-[0.98]',
+        'focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2',
         hasAlerts && 'border-amber-600/50'
       )}
       onClick={() => onClick(metric)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onClick(metric)
+        }
+      }}
+      aria-label={`View details for ${metric.display_name}. Current value: ${metric.latest_value} ${metric.unit}`}
     >
       {/* Outlier Badge */}
       {metric.significance.is_outlier && (
@@ -92,7 +103,7 @@ export function MetricCard({ metric, onClick }: MetricCardProps) {
       </CardContent>
     </Card>
   )
-}
+})
 
 interface ChangeIndicatorProps {
   label: string

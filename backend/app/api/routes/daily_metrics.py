@@ -632,3 +632,78 @@ def _generate_weekly_summary(movers: List[TopMover]) -> str:
         return f"Markets showed weakness this week with {down_count} indicators declining. Key moves: {movers[0].display_name} and {movers[1].display_name if len(movers) > 1 else 'other indicators'}."
     else:
         return "Mixed signals this week with indicators moving in both directions. Key changes warrant continued monitoring."
+
+
+@router.post("/refresh-all")
+async def refresh_all_metrics(
+    current_user: User = Depends(get_current_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Refresh all active metrics (admin only).
+
+    Used by automated GitHub Actions workflow.
+    Incrementally updates all metrics with only new data.
+    """
+    try:
+        from app.services.incremental_update_service import IncrementalUpdateService
+
+        logger.info(f"Starting bulk refresh of all metrics by user {current_user.email}")
+
+        service = IncrementalUpdateService(db)
+        results = await service.update_all_metrics()
+
+        updated_count = sum(1 for r in results.values() if r["status"] == "success" and r.get("count", 0) > 0)
+        failed_count = sum(1 for r in results.values() if r["status"] == "error")
+
+        failures = [
+            {"metric": code, "error": result.get("error", "Unknown error")}
+            for code, result in results.items()
+            if result["status"] == "error"
+        ]
+
+        logger.info(
+            f"Bulk refresh complete: {updated_count} updated, {failed_count} failed"
+        )
+
+        return {
+            "status": "completed",
+            "updated_count": updated_count,
+            "failed_count": failed_count,
+            "failures": failures,
+            "timestamp": datetime.now().isoformat()
+        }
+
+    except Exception as e:
+        logger.error(f"Error in refresh_all_metrics: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/quality-report")
+async def get_quality_report(
+    current_user: User = Depends(get_current_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get data quality report (admin only).
+
+    Checks for stale data, missing metrics, gaps, and other data quality issues.
+    Provides comprehensive analysis of data health across all metrics.
+    """
+    try:
+        from app.services.data_quality_service import DataQualityService
+
+        logger.info(f"Running data quality report for user {current_user.email}")
+
+        quality_service = DataQualityService(db)
+        report = await quality_service.run_all_checks()
+
+        logger.info(
+            f"Quality report complete: {report['issues_count']} metrics with issues"
+        )
+
+        return report
+
+    except Exception as e:
+        logger.error(f"Error in get_quality_report: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")

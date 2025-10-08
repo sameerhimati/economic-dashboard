@@ -1,0 +1,38 @@
+name: Refresh Daily Metrics
+
+on:
+  schedule:
+    # Run once per day at 3 AM EST (8 AM UTC)
+    - cron: '0 8 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  refresh-metrics:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install httpx python-dotenv
+
+      - name: Refresh all metrics
+        env:
+          API_URL: ${{ secrets.RAILWAY_API_URL }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: |
+          python backend/scripts/refresh_all_metrics.py
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Metrics refresh failed - check logs"
+          # Add notification logic if needed (Slack, email, etc.)
