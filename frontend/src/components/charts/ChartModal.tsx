@@ -328,8 +328,8 @@ function ChartModal({
               </Alert>
             ) : data ? (
               <div className="space-y-6">
-                {/* Clean Chart with White Background */}
-                <div className="bg-white dark:bg-zinc-900 rounded-xl border-2 border-border p-6 shadow-sm">
+                {/* Clean Chart with Card Background */}
+                <div className="bg-card rounded-xl border-2 border-border p-6 shadow-sm">
                   <ResponsiveContainer width="100%" height={360}>
                     <LineChart data={data.data} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
                       <CartesianGrid
@@ -505,7 +505,7 @@ function ChartModal({
                 )}
 
                 {/* Data Source Section */}
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-xl border-2 border-blue-200/50 dark:border-blue-800/50 p-6">
+                <div className="bg-blue-100/5 dark:bg-blue-950/10 rounded-xl border-2 border-blue-200/50 dark:border-blue-800/50 p-6">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                       <div className="p-3 bg-blue-500/10 rounded-lg">
@@ -569,7 +569,7 @@ function ChartModal({
                 <div>
                   <h3 className="text-xl font-bold mb-4">How to Read the Numbers</h3>
                   <div className="space-y-4">
-                    <div className="border-2 border-green-500/30 bg-green-50/50 dark:bg-green-950/30 rounded-xl p-5">
+                    <div className="border-2 border-green-500/30 bg-green-100/10 dark:bg-green-950/20 rounded-xl p-5">
                       <div className="flex items-start gap-4">
                         <div className="p-2 bg-green-500/20 rounded-lg">
                           <TrendingUp className="h-5 w-5 text-green-700 dark:text-green-400" />
@@ -585,7 +585,7 @@ function ChartModal({
                       </div>
                     </div>
 
-                    <div className="border-2 border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/30 rounded-xl p-5">
+                    <div className="border-2 border-blue-500/30 bg-blue-100/10 dark:bg-blue-950/20 rounded-xl p-5">
                       <div className="flex items-start gap-4">
                         <div className="p-2 bg-blue-500/20 rounded-lg">
                           <Activity className="h-5 w-5 text-blue-700 dark:text-blue-400" />
@@ -601,7 +601,7 @@ function ChartModal({
                       </div>
                     </div>
 
-                    <div className="border-2 border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/30 rounded-xl p-5">
+                    <div className="border-2 border-amber-500/30 bg-amber-100/10 dark:bg-amber-950/20 rounded-xl p-5">
                       <div className="flex items-start gap-4">
                         <div className="p-2 bg-amber-500/20 rounded-lg">
                           <TrendingDown className="h-5 w-5 text-amber-700 dark:text-amber-400" />

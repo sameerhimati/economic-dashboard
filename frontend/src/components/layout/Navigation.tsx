@@ -25,7 +25,7 @@ export function Navigation() {
   }
 
   return (
-    <nav className="border-b bg-background sticky top-14 z-40">
+    <nav className="border-b bg-background sticky top-14 z-40 shadow-sm">
       <div className="container px-3 sm:px-4">
         {/* Mobile Menu Button */}
         <div className="flex md:hidden items-center justify-between py-2">
