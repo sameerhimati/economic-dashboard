@@ -1,78 +1,84 @@
 @import "tailwindcss";
 
-/* Clean, information-focused theme - Dark Mode by default */
+/* Professional theme - Based on shadcn/ui official design system */
 :root {
-  /* Deep blacks and grays for dark mode - IMPROVED CONTRAST */
-  --background: 0 0% 3.5%;         /* Darker from 5% to 3.5% */
-  --foreground: 0 0% 98%;
+  /* Dark mode with blue tint - Professional, not pure black */
+  --background: 224 71% 4%;        /* Blue-tinted dark, easier on eyes */
+  --foreground: 213 31% 91%;       /* Soft white */
 
-  /* Cards with MUCH more contrast */
-  --card: 0 0% 15%;                /* Increased from 12% to 15% */
-  --card-foreground: 0 0% 98%;
+  /* Cards same as background - borders provide separation */
+  --card: 224 71% 4%;
+  --card-foreground: 213 31% 91%;
 
-  /* Popovers brighter than background */
-  --popover: 0 0% 12%;             /* Increased from 8% to 12% */
-  --popover-foreground: 0 0% 98%;
+  /* Popovers match background */
+  --popover: 224 71% 4%;
+  --popover-foreground: 213 31% 91%;
 
-  /* Primary - Keep as is */
+  /* Primary - Vibrant blue */
   --primary: 217 91% 60%;
-  --primary-foreground: 0 0% 98%;
+  --primary-foreground: 210 40% 98%;
 
-  /* Secondary - More visible */
-  --secondary: 0 0% 20%;           /* Increased from 15% to 20% */
-  --secondary-foreground: 0 0% 98%;
+  /* Secondary with blue tint */
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
 
-  /* Muted - More visible */
-  --muted: 0 0% 20%;               /* Increased from 15% to 20% */
-  --muted-foreground: 0 0% 70%;    /* Increased from 65% to 70% */
+  /* Muted with blue-gray hue */
+  --muted: 223 47% 11%;
+  --muted-foreground: 215.4 16.3% 56.9%;
 
-  /* Accent - Distinct from card */
-  --accent: 0 0% 18%;              /* Increased from 12% to 18% */
-  --accent-foreground: 0 0% 98%;
+  /* Accent with blue tint */
+  --accent: 217.2 32.6% 17.5%;
+  --accent-foreground: 210 40% 98%;
 
-  /* Destructive - Red for errors/negative */
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 98%;
+  /* Destructive */
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
 
-  /* Borders - Even more visible */
-  --border: 0 0% 30%;              /* Increased from 25% to 30% */
-  --input: 0 0% 30%;
+  /* Borders - Visible but subtle */
+  --border: 216 34% 17%;
+  --input: 216 34% 17%;
 
   /* Ring for focus states */
   --ring: 217 91% 60%;
 
   /* Border radius */
-  --radius: 0.375rem;
+  --radius: 0.5rem;
 }
 
-/* Light mode - Clean whites */
+/* Light mode - Clean, professional */
 .light {
-  --background: 0 0% 100%;         /* white */
-  --foreground: 0 0% 3%;           /* Almost black for high contrast */
+  /* Pure white background */
+  --background: 0 0% 100%;
+  --foreground: 222.2 47.4% 11.2%;  /* Blue-gray text, not pure black */
 
-  --card: 0 0% 98%;                /* Slight gray for better visibility */
-  --card-foreground: 0 0% 3%;      /* Almost black */
+  /* Cards same as background - use borders for definition */
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 47.4% 11.2%;
 
-  --popover: 0 0% 98%;
-  --popover-foreground: 0 0% 3%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 47.4% 11.2%;
 
-  --primary: 217 91% 60%;          /* blue-500 */
-  --primary-foreground: 0 0% 98%;
+  --primary: 217 91% 60%;
+  --primary-foreground: 210 40% 98%;
 
-  --secondary: 0 0% 96%;           /* zinc-100 */
-  --secondary-foreground: 0 0% 3%;
+  /* Secondary with subtle blue tint */
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
 
-  --muted: 0 0% 96%;
-  --muted-foreground: 0 0% 35%;    /* Increased from 40% to 35% for WCAG AA compliance */
+  /* Muted with blue-gray */
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
 
-  --accent: 0 0% 96%;
-  --accent-foreground: 0 0% 3%;
+  /* Accent */
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
 
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 98%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
 
-  --border: 0 0% 75%;              /* Darker border from 85% to 75% for visibility */
-  --input: 0 0% 75%;
+  /* Borders - Light blue-gray, visible but not harsh */
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
 
   --ring: 217 91% 60%;
 }
