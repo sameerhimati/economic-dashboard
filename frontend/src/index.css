@@ -2,47 +2,47 @@
 
 /* Clean, information-focused theme - Dark Mode by default */
 :root {
-  /* Deep blacks and grays for dark mode */
-  --background: 0 0% 5%;          /* zinc-950 equivalent */
-  --foreground: 0 0% 98%;          /* zinc-50 equivalent */
+  /* Deep blacks and grays for dark mode - IMPROVED CONTRAST */
+  --background: 0 0% 3.5%;         /* Darker from 5% to 3.5% */
+  --foreground: 0 0% 98%;
 
-  /* Cards with subtle elevation */
-  --card: 0 0% 12%;                /* More contrast from background */
+  /* Cards with MUCH more contrast */
+  --card: 0 0% 15%;                /* Increased from 12% to 15% */
   --card-foreground: 0 0% 98%;
 
-  /* Popovers */
-  --popover: 0 0% 8%;
+  /* Popovers brighter than background */
+  --popover: 0 0% 12%;             /* Increased from 8% to 12% */
   --popover-foreground: 0 0% 98%;
 
-  /* Primary - Subtle blue for links and important actions */
-  --primary: 217 91% 60%;          /* blue-500 */
+  /* Primary - Keep as is */
+  --primary: 217 91% 60%;
   --primary-foreground: 0 0% 98%;
 
-  /* Secondary - Muted gray */
-  --secondary: 0 0% 15%;           /* zinc-800 equivalent */
+  /* Secondary - More visible */
+  --secondary: 0 0% 20%;           /* Increased from 15% to 20% */
   --secondary-foreground: 0 0% 98%;
 
-  /* Muted elements */
-  --muted: 0 0% 15%;               /* zinc-800 */
-  --muted-foreground: 0 0% 65%;    /* Increased from 60% to 65% for better readability */
+  /* Muted - More visible */
+  --muted: 0 0% 20%;               /* Increased from 15% to 20% */
+  --muted-foreground: 0 0% 70%;    /* Increased from 65% to 70% */
 
-  /* Accent for hover states */
-  --accent: 0 0% 12%;
+  /* Accent - Distinct from card */
+  --accent: 0 0% 18%;              /* Increased from 12% to 18% */
   --accent-foreground: 0 0% 98%;
 
   /* Destructive - Red for errors/negative */
-  --destructive: 0 84% 60%;        /* red-500 */
+  --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 98%;
 
-  /* Borders - More visible */
-  --border: 0 0% 25%;              /* Increased from 18% to 25% for visible outlines */
-  --input: 0 0% 25%;
+  /* Borders - Even more visible */
+  --border: 0 0% 30%;              /* Increased from 25% to 30% */
+  --input: 0 0% 30%;
 
   /* Ring for focus states */
-  --ring: 217 91% 60%;             /* blue-500 */
+  --ring: 217 91% 60%;
 
   /* Border radius */
-  --radius: 0.375rem;              /* Slightly smaller for cleaner look */
+  --radius: 0.375rem;
 }
 
 /* Light mode - Clean whites */
