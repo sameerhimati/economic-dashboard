@@ -30,7 +30,7 @@ async def refresh_all_metrics(api_url: str, token: str):
     async with httpx.AsyncClient(timeout=600.0) as client:
         # Call the refresh-all endpoint
         response = await client.post(
-            f"{api_url}/daily-metrics/refresh-all",
+            f"{api_url}/api/daily-metrics/refresh-all",
             headers={"Authorization": f"Bearer {token}"}
         )
 
