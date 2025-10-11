@@ -2,13 +2,14 @@ name: Refresh Daily Metrics
 
 on:
   schedule:
-    # Run once per day at 3 AM EST (8 AM UTC)
-    - cron: '0 8 * * *'
+    # Run once per day at 3:30 AM EST (8:30 AM UTC) - staggered after newsletter fetch
+    - cron: '30 8 * * *'
   workflow_dispatch:  # Allow manual trigger
 
 jobs:
   refresh-metrics:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
@@ -25,9 +26,9 @@ jobs:
 
       - name: Refresh all metrics
         env:
-          API_URL: ${{ secrets.RAILWAY_API_URL }}
-          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
-          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          API_URL: ${{ secrets.API_BASE_URL }}
+          ADMIN_EMAIL: ${{ secrets.CRON_USER_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.CRON_USER_PASSWORD }}
         run: |
           python backend/scripts/refresh_all_metrics.py
 
