@@ -212,7 +212,7 @@ function ChartModal({
                 <Button
                   variant="outline"
                   size="default"
-                  className="gap-1.5 sm:gap-2 text-sm font-medium hover:bg-primary/5 hover:text-primary hover:border-primary/30 transition-all h-9 px-3 sm:px-4"
+                  className="text-sm font-medium hover:bg-zinc-700 border-zinc-600 text-zinc-300 hover:text-white hover:border-zinc-500 transition-all h-9 px-4"
                   asChild
                 >
                   <a
@@ -220,9 +220,7 @@ function ChartModal({
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <ExternalLink className="h-4 w-4 shrink-0" />
-                    <span className="hidden sm:inline">View on FRED</span>
-                    <span className="sm:hidden">FRED</span>
+                    Source
                   </a>
                 </Button>
               </div>
@@ -264,7 +262,7 @@ function ChartModal({
             <TabsList className="grid w-full grid-cols-4 h-12 bg-zinc-800 p-1 rounded-lg">
               <TabsTrigger
                 value="chart"
-                className="gap-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+                className="gap-2 text-sm font-medium text-zinc-400 data-[state=active]:!bg-blue-600 data-[state=active]:!text-white data-[state=active]:shadow-md data-[state=active]:border-0"
               >
                 <BarChart3 className="h-4 w-4" />
                 <span className="hidden sm:inline">Chart & Stats</span>
@@ -272,7 +270,7 @@ function ChartModal({
               </TabsTrigger>
               <TabsTrigger
                 value="interpret"
-                className="gap-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+                className="gap-2 text-sm font-medium text-zinc-400 data-[state=active]:!bg-blue-600 data-[state=active]:!text-white data-[state=active]:shadow-md data-[state=active]:border-0"
               >
                 <Lightbulb className="h-4 w-4" />
                 <span className="hidden sm:inline">How to Read</span>
@@ -280,7 +278,7 @@ function ChartModal({
               </TabsTrigger>
               <TabsTrigger
                 value="about"
-                className="gap-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+                className="gap-2 text-sm font-medium text-zinc-400 data-[state=active]:!bg-blue-600 data-[state=active]:!text-white data-[state=active]:shadow-md data-[state=active]:border-0"
               >
                 <BookOpen className="h-4 w-4" />
                 <span className="hidden sm:inline">About</span>
@@ -288,7 +286,7 @@ function ChartModal({
               </TabsTrigger>
               <TabsTrigger
                 value="history"
-                className="gap-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+                className="gap-2 text-sm font-medium text-zinc-400 data-[state=active]:!bg-blue-600 data-[state=active]:!text-white data-[state=active]:shadow-md data-[state=active]:border-0"
               >
                 <History className="h-4 w-4" />
                 <span className="hidden sm:inline">History</span>
@@ -303,10 +301,10 @@ function ChartModal({
               <h3 className="text-lg font-semibold">Historical Trend</h3>
               <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
                 <TabsList className="h-auto bg-transparent border-0 gap-2 p-0">
-                  <TabsTrigger value="30d" className="text-sm px-2 py-1 data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:font-bold data-[state=inactive]:text-muted-foreground">30D</TabsTrigger>
-                  <TabsTrigger value="90d" className="text-sm px-2 py-1 data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:font-bold data-[state=inactive]:text-muted-foreground">90D</TabsTrigger>
-                  <TabsTrigger value="1y" className="text-sm px-2 py-1 data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:font-bold data-[state=inactive]:text-muted-foreground">1Y</TabsTrigger>
-                  <TabsTrigger value="5y" className="text-sm px-2 py-1 data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:font-bold data-[state=inactive]:text-muted-foreground">5Y</TabsTrigger>
+                  <TabsTrigger value="30d" className="text-sm px-2 py-1 text-zinc-500 data-[state=active]:bg-transparent data-[state=active]:!text-blue-500 data-[state=active]:shadow-none data-[state=active]:font-bold data-[state=active]:border-0">30D</TabsTrigger>
+                  <TabsTrigger value="90d" className="text-sm px-2 py-1 text-zinc-500 data-[state=active]:bg-transparent data-[state=active]:!text-blue-500 data-[state=active]:shadow-none data-[state=active]:font-bold data-[state=active]:border-0">90D</TabsTrigger>
+                  <TabsTrigger value="1y" className="text-sm px-2 py-1 text-zinc-500 data-[state=active]:bg-transparent data-[state=active]:!text-blue-500 data-[state=active]:shadow-none data-[state=active]:font-bold data-[state=active]:border-0">1Y</TabsTrigger>
+                  <TabsTrigger value="5y" className="text-sm px-2 py-1 text-zinc-500 data-[state=active]:bg-transparent data-[state=active]:!text-blue-500 data-[state=active]:shadow-none data-[state=active]:font-bold data-[state=active]:border-0">5Y</TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
