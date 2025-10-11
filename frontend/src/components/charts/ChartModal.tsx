@@ -264,7 +264,7 @@ function ChartModal({
             <TabsList className="grid w-full grid-cols-4 h-12 bg-muted/50 p-1 rounded-lg">
               <TabsTrigger
                 value="chart"
-                className="gap-2 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                className="gap-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
               >
                 <BarChart3 className="h-4 w-4" />
                 <span className="hidden sm:inline">Chart & Stats</span>
@@ -272,7 +272,7 @@ function ChartModal({
               </TabsTrigger>
               <TabsTrigger
                 value="interpret"
-                className="gap-2 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                className="gap-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
               >
                 <Lightbulb className="h-4 w-4" />
                 <span className="hidden sm:inline">How to Read</span>
@@ -280,7 +280,7 @@ function ChartModal({
               </TabsTrigger>
               <TabsTrigger
                 value="about"
-                className="gap-2 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                className="gap-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
               >
                 <BookOpen className="h-4 w-4" />
                 <span className="hidden sm:inline">About</span>
@@ -288,7 +288,7 @@ function ChartModal({
               </TabsTrigger>
               <TabsTrigger
                 value="history"
-                className="gap-2 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                className="gap-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
               >
                 <History className="h-4 w-4" />
                 <span className="hidden sm:inline">History</span>
@@ -335,7 +335,7 @@ function ChartModal({
                       <CartesianGrid
                         strokeDasharray="3 3"
                         stroke="hsl(var(--border))"
-                        opacity={0.3}
+                        opacity={0.6}
                         vertical={false}
                       />
                       <XAxis
