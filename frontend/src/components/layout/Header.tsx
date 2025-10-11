@@ -65,7 +65,7 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b bg-background shadow-sm">
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur-md shadow-sm">
         <div className="container flex h-14 items-center justify-between px-3 sm:px-4">
           <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
