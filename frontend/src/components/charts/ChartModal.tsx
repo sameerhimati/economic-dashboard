@@ -199,10 +199,10 @@ function ChartModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         ref={modalRef}
-        className="max-w-6xl max-h-[90vh] overflow-y-auto p-0"
+        className="max-w-6xl max-h-[90vh] overflow-y-auto p-0 bg-zinc-900 text-white border-zinc-700"
       >
         {/* Clean Header with Summary */}
-        <DialogHeader className="px-8 pt-8 pb-6 border-b bg-gradient-to-b from-background to-muted/10">
+        <DialogHeader className="px-8 pt-8 pb-6 border-b border-zinc-700 bg-zinc-900">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 space-y-2">
               <div className="flex items-center gap-3 flex-wrap">
@@ -226,7 +226,7 @@ function ChartModal({
                   </a>
                 </Button>
               </div>
-              <DialogDescription className="text-base text-muted-foreground leading-relaxed max-w-4xl">
+              <DialogDescription className="text-base text-zinc-400 leading-relaxed max-w-4xl">
                 {education?.whatIsIt || 'View historical trends and detailed analysis'}
               </DialogDescription>
               <div className="flex items-center gap-2 flex-wrap">
@@ -261,7 +261,7 @@ function ChartModal({
         <div className="px-8 py-6">
           {/* Prominent Navigation Tabs */}
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ModalTab)} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4 h-12 bg-muted/50 p-1 rounded-lg">
+            <TabsList className="grid w-full grid-cols-4 h-12 bg-zinc-800 p-1 rounded-lg">
               <TabsTrigger
                 value="chart"
                 className="gap-2 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
@@ -329,28 +329,28 @@ function ChartModal({
             ) : data ? (
               <div className="space-y-6">
                 {/* Clean Chart with Card Background */}
-                <div className="bg-card rounded-xl border-2 border-border p-6 shadow-sm">
+                <div className="bg-zinc-800 rounded-xl border-2 border-zinc-700 p-6 shadow-sm">
                   <ResponsiveContainer width="100%" height={360}>
                     <LineChart data={data.data} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
                       <CartesianGrid
                         strokeDasharray="3 3"
-                        stroke="hsl(var(--border))"
+                        stroke="#52525b"
                         opacity={0.6}
                         vertical={false}
                       />
                       <XAxis
                         dataKey="date"
                         tickFormatter={formatXAxis}
-                        tick={{ fontSize: 13, fill: 'hsl(var(--muted-foreground))' }}
+                        tick={{ fontSize: 13, fill: '#a1a1aa' }}
                         tickLine={false}
-                        axisLine={{ stroke: 'hsl(var(--border))' }}
+                        axisLine={{ stroke: '#52525b' }}
                         dy={10}
                       />
                       <YAxis
                         tickFormatter={formatYAxis}
-                        tick={{ fontSize: 13, fill: 'hsl(var(--muted-foreground))' }}
+                        tick={{ fontSize: 13, fill: '#a1a1aa' }}
                         tickLine={false}
-                        axisLine={{ stroke: 'hsl(var(--border))' }}
+                        axisLine={{ stroke: '#52525b' }}
                         width={70}
                         dx={-5}
                       />
@@ -359,16 +359,16 @@ function ChartModal({
                           if (!active || !payload || payload.length === 0) return null
                           const dataPoint = payload[0]
                           return (
-                            <div className="bg-popover border-2 border-primary/30 rounded-lg shadow-xl p-4 backdrop-blur-sm">
-                              <p className="text-xs font-medium text-muted-foreground mb-1">
+                            <div className="bg-zinc-800 border-2 border-blue-500/30 rounded-lg shadow-xl p-4">
+                              <p className="text-xs font-medium text-zinc-400 mb-1">
                                 {formatXAxis(dataPoint.payload.date)}
                               </p>
-                              <p className="text-2xl font-bold tabular-nums">
+                              <p className="text-2xl font-bold tabular-nums text-white">
                                 {dataPoint.value?.toLocaleString('en-US', {
                                   minimumFractionDigits: 2,
                                   maximumFractionDigits: 2,
                                 })}
-                                <span className="text-sm font-normal text-muted-foreground ml-2">
+                                <span className="text-sm font-normal text-zinc-400 ml-2">
                                   {data.unit}
                                 </span>
                               </p>
@@ -754,31 +754,31 @@ interface EnhancedStatCardProps {
 function EnhancedStatCard({ icon, label, value, unit, variant }: EnhancedStatCardProps) {
   const variantStyles = {
     current: {
-      border: 'border-primary/40',
-      bg: 'bg-primary/5',
-      iconBg: 'bg-primary/10',
-      iconColor: 'text-primary',
-      ring: 'ring-2 ring-primary/20',
+      border: 'border-blue-500/40',
+      bg: 'bg-zinc-800',
+      iconBg: 'bg-blue-500/10',
+      iconColor: 'text-blue-400',
+      ring: 'ring-2 ring-blue-500/20',
     },
     neutral: {
-      border: 'border-border',
-      bg: 'bg-muted/30',
-      iconBg: 'bg-muted',
-      iconColor: 'text-muted-foreground',
+      border: 'border-zinc-700',
+      bg: 'bg-zinc-800',
+      iconBg: 'bg-zinc-700',
+      iconColor: 'text-zinc-400',
       ring: '',
     },
     high: {
       border: 'border-green-500/40',
-      bg: 'bg-green-50/50 dark:bg-green-950/20',
+      bg: 'bg-zinc-800',
       iconBg: 'bg-green-500/10',
-      iconColor: 'text-green-600 dark:text-green-500',
+      iconColor: 'text-green-400',
       ring: '',
     },
     low: {
       border: 'border-red-500/40',
-      bg: 'bg-red-50/50 dark:bg-red-950/20',
+      bg: 'bg-zinc-800',
       iconBg: 'bg-red-500/10',
-      iconColor: 'text-red-600 dark:text-red-500',
+      iconColor: 'text-red-400',
       ring: '',
     },
   }
@@ -800,16 +800,16 @@ function EnhancedStatCard({ icon, label, value, unit, variant }: EnhancedStatCar
         </div>
       </div>
       <div className="space-y-1">
-        <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+        <p className="text-sm font-medium text-zinc-400 uppercase tracking-wide">
           {label}
         </p>
-        <p className="text-3xl font-bold tabular-nums">
+        <p className="text-3xl font-bold tabular-nums text-white">
           {value.toLocaleString('en-US', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           })}
         </p>
-        <p className="text-sm font-medium text-muted-foreground">{unit}</p>
+        <p className="text-sm font-medium text-zinc-400">{unit}</p>
       </div>
     </div>
   )
