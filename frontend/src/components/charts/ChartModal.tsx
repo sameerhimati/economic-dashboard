@@ -302,11 +302,11 @@ function ChartModal({
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Historical Trend</h3>
               <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-                <TabsList className="h-9 bg-muted/50">
-                  <TabsTrigger value="30d" className="text-xs px-3">30D</TabsTrigger>
-                  <TabsTrigger value="90d" className="text-xs px-3">90D</TabsTrigger>
-                  <TabsTrigger value="1y" className="text-xs px-3">1Y</TabsTrigger>
-                  <TabsTrigger value="5y" className="text-xs px-3">5Y</TabsTrigger>
+                <TabsList className="h-9 bg-transparent border border-border">
+                  <TabsTrigger value="30d" className="text-xs px-3 data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:font-bold">30D</TabsTrigger>
+                  <TabsTrigger value="90d" className="text-xs px-3 data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:font-bold">90D</TabsTrigger>
+                  <TabsTrigger value="1y" className="text-xs px-3 data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:font-bold">1Y</TabsTrigger>
+                  <TabsTrigger value="5y" className="text-xs px-3 data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:font-bold">5Y</TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
